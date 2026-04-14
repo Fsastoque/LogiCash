@@ -91,6 +91,24 @@ export const Dashboard: React.FC = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900">
+                    Cuentas <ChevronDown className="w-3 h-3 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                  <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Gestión de Cuentas</DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-zinc-800" />
+                  <DropdownMenuItem onClick={() => setIsAccModalOpen(true)} className="cursor-pointer">
+                    <PlusCircle className="w-4 h-4 mr-2" /> Agregar Cuenta
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer">
+                    <CreditCard className="w-4 h-4 mr-2" /> Ver Todas
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900">
                     Reportes <ChevronDown className="w-3 h-3 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
