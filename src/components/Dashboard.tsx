@@ -86,6 +86,49 @@ export const Dashboard: React.FC = () => {
               <h1 className="text-xl font-bold tracking-tighter text-zinc-100 font-mono">LogiCash</h1>
             </div>
 
+            {/* Mobile Menu */}
+            <div className="md:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900">
+                    <Menu className="w-5 h-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100 w-56">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Cuentas</DropdownMenuLabel>
+                    <DropdownMenuItem 
+                      onClick={() => setIsAccModalOpen(true)} 
+                      className="cursor-pointer"
+                    >
+                      <PlusCircle className="w-4 h-4 mr-2" /> Agregar Cuenta
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer">
+                      <CreditCard className="w-4 h-4 mr-2" /> Ver Todas
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator className="bg-zinc-800" />
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Reportes</DropdownMenuLabel>
+                    <DropdownMenuItem 
+                      onClick={() => setShowAnnualSummary(!showAnnualSummary)} 
+                      className="cursor-pointer"
+                    >
+                      <BarChart3 className="w-4 h-4 mr-2" /> 
+                      {showAnnualSummary ? 'Ocultar Consolidado' : 'Ver Consolidado Anual'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer">
+                      <Calendar className="w-4 h-4 mr-2" /> Histórico de Años
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator className="bg-zinc-800" />
+                  <DropdownMenuItem className="cursor-pointer">
+                    <Settings className="w-4 h-4 mr-2" /> Categorías
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
             {/* Desktop Navigation Menu */}
             <nav className="hidden md:flex items-center gap-1">
               <DropdownMenu>
