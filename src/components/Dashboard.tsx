@@ -30,6 +30,7 @@ export const Dashboard: React.FC = () => {
   // Modal states
   const [isTransModalOpen, setIsTransModalOpen] = useState(false);
   const [isAccModalOpen, setIsAccModalOpen] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<any>(null);
 
   const currentMonthName = format(new Date(), 'MMMM', { locale: es });
 
@@ -98,7 +99,10 @@ export const Dashboard: React.FC = () => {
                   <DropdownMenuGroup>
                     <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Cuentas</DropdownMenuLabel>
                     <DropdownMenuItem 
-                      onClick={() => setIsAccModalOpen(true)} 
+                      onClick={() => {
+                        setSelectedAccount(null);
+                        setIsAccModalOpen(true);
+                      }} 
                       className="cursor-pointer"
                     >
                       <PlusCircle className="w-4 h-4 mr-2" /> Agregar Cuenta
@@ -144,6 +148,7 @@ export const Dashboard: React.FC = () => {
                     <DropdownMenuItem 
                       onClick={() => {
                         console.log('Opening Account Modal');
+                        setSelectedAccount(null);
                         setIsAccModalOpen(true);
                       }} 
                       className="cursor-pointer"
@@ -281,7 +286,13 @@ export const Dashboard: React.FC = () => {
                 transition={{ delay: i * 0.1 }}
                 whileHover={{ y: -5 }}
               >
-                <Card className="bg-zinc-900 border-zinc-800 overflow-hidden relative group cursor-pointer">
+                <Card 
+                  onClick={() => {
+                    setSelectedAccount(acc);
+                    setIsAccModalOpen(true);
+                  }}
+                  className="bg-zinc-900 border-zinc-800 overflow-hidden relative group cursor-pointer"
+                >
                   <div className="absolute inset-0 bg-gradient-to-br from-zinc-800/50 to-transparent opacity-50" />
                   <div className="absolute top-0 right-0 p-4">
                     <div className="w-10 h-6 bg-zinc-800 rounded-md border border-zinc-700 flex items-center justify-center">
@@ -308,7 +319,10 @@ export const Dashboard: React.FC = () => {
             {accounts.length === 0 && (
               <Button 
                 variant="outline" 
-                onClick={() => setIsAccModalOpen(true)}
+                onClick={() => {
+                  setSelectedAccount(null);
+                  setIsAccModalOpen(true);
+                }}
                 className="h-[180px] w-full border-dashed border-zinc-800 bg-transparent text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/50 transition-all"
               >
                 <div className="text-center">
@@ -355,8 +369,12 @@ export const Dashboard: React.FC = () => {
       />
       <AccountModal 
         isOpen={isAccModalOpen} 
-        onClose={() => setIsAccModalOpen(false)} 
+        onClose={() => {
+          setIsAccModalOpen(false);
+          setSelectedAccount(null);
+        }} 
         onSuccess={fetchData}
+        account={selectedAccount}
       />
     </div>
   );
