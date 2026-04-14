@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { 
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, 
+  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, 
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { TransactionModal } from './TransactionModal';
@@ -95,14 +95,16 @@ export const Dashboard: React.FC = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-                  <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Gestión de Cuentas</DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-zinc-800" />
-                  <DropdownMenuItem onSelect={() => setIsAccModalOpen(true)} className="cursor-pointer">
-                    <PlusCircle className="w-4 h-4 mr-2" /> Agregar Cuenta
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer">
-                    <CreditCard className="w-4 h-4 mr-2" /> Ver Todas
-                  </DropdownMenuItem>
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Gestión de Cuentas</DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-zinc-800" />
+                    <DropdownMenuItem onSelect={() => setIsAccModalOpen(true)} className="cursor-pointer">
+                      <PlusCircle className="w-4 h-4 mr-2" /> Agregar Cuenta
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer">
+                      <CreditCard className="w-4 h-4 mr-2" /> Ver Todas
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -113,15 +115,17 @@ export const Dashboard: React.FC = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-                  <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Análisis Financiero</DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-zinc-800" />
-                  <DropdownMenuItem onSelect={() => setShowAnnualSummary(!showAnnualSummary)} className="cursor-pointer">
-                    <BarChart3 className="w-4 h-4 mr-2" /> 
-                    {showAnnualSummary ? 'Ocultar Consolidado' : 'Ver Consolidado Anual'}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer">
-                    <Calendar className="w-4 h-4 mr-2" /> Histórico de Años
-                  </DropdownMenuItem>
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Análisis Financiero</DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-zinc-800" />
+                    <DropdownMenuItem onSelect={() => setShowAnnualSummary(!showAnnualSummary)} className="cursor-pointer">
+                      <BarChart3 className="w-4 h-4 mr-2" /> 
+                      {showAnnualSummary ? 'Ocultar Consolidado' : 'Ver Consolidado Anual'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer">
+                      <Calendar className="w-4 h-4 mr-2" /> Histórico de Años
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
               <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900">
