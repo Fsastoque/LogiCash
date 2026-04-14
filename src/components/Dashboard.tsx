@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { AnnualSummary } from './AnnualSummary';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { LogOut, Wallet, TrendingUp, TrendingDown, PlusCircle, CreditCard, ArrowUpRight, ArrowDownRight, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
 
