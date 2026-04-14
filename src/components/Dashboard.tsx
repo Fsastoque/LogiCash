@@ -98,7 +98,13 @@ export const Dashboard: React.FC = () => {
                   <DropdownMenuGroup>
                     <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Gestión de Cuentas</DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-zinc-800" />
-                    <DropdownMenuItem onSelect={() => setIsAccModalOpen(true)} className="cursor-pointer">
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        console.log('Opening Account Modal');
+                        setIsAccModalOpen(true);
+                      }} 
+                      className="cursor-pointer"
+                    >
                       <PlusCircle className="w-4 h-4 mr-2" /> Agregar Cuenta
                     </DropdownMenuItem>
                     <DropdownMenuItem className="cursor-pointer">
@@ -118,7 +124,13 @@ export const Dashboard: React.FC = () => {
                   <DropdownMenuGroup>
                     <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Análisis Financiero</DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-zinc-800" />
-                    <DropdownMenuItem onSelect={() => setShowAnnualSummary(!showAnnualSummary)} className="cursor-pointer">
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        console.log('Toggling Annual Summary', !showAnnualSummary);
+                        setShowAnnualSummary(!showAnnualSummary);
+                      }} 
+                      className="cursor-pointer"
+                    >
                       <BarChart3 className="w-4 h-4 mr-2" /> 
                       {showAnnualSummary ? 'Ocultar Consolidado' : 'Ver Consolidado Anual'}
                     </DropdownMenuItem>
