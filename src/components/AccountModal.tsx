@@ -12,16 +12,35 @@ interface AccountModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  account?: any; // Optional account for editing
 }
 
-export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onSuccess }) => {
+export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onSuccess, account }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
     tipo: 'Ahorros',
     saldo_actual: ''
   });
+
+  // Initialize form when account changes
+  React.useEffect(() => {
+    if (account) {
+      setFormData({
+        nombre: account.nombre,
+        tipo: account.tipo,
+        saldo_actual: account.saldo_actual.toString()
+      });
+    } else {
+      setFormData({
+        nombre: '',
+        tipo: 'Ahorros',
+        saldo_actual: ''
+      });
+    }
+  }, [account, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,15 +48,28 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onS
     setLoading(true);
 
     try {
-      const { error } = await supabase.from('cuentas').insert([{
-        ...formData,
-        user_id: user.id,
-        saldo_actual: parseFloat(formData.saldo_actual || '0')
-      }]);
+      if (account) {
+        // Update
+        const { error } = await supabase
+          .from('cuentas')
+          .update({
+            ...formData,
+            saldo_actual: parseFloat(formData.saldo_actual || '0')
+          })
+          .eq('id', account.id);
+        if (error) throw error;
+        toast.success('Cuenta actualizada');
+      } else {
+        // Insert
+        const { error } = await supabase.from('cuentas').insert([{
+          ...formData,
+          user_id: user.id,
+          saldo_actual: parseFloat(formData.saldo_actual || '0')
+        }]);
+        if (error) throw error;
+        toast.success('Cuenta creada');
+      }
 
-      if (error) throw error;
-
-      toast.success('Cuenta creada');
       onSuccess();
       onClose();
     } catch (error: any) {
@@ -47,11 +79,37 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onS
     }
   };
 
+  const handleDelete = async () => {
+    if (!account || !confirm('¿Estás seguro de eliminar esta cuenta? Se eliminarán también sus transacciones.')) return;
+    setDeleteLoading(true);
+
+    try {
+      // Transactions will be deleted by cascade if RLS/Foreign keys are set up correctly, 
+      // but let's be explicit if needed. Usually Supabase handles this if configured.
+      const { error } = await supabase
+        .from('cuentas')
+        .delete()
+        .eq('id', account.id);
+
+      if (error) throw error;
+
+      toast.success('Cuenta eliminada');
+      onSuccess();
+      onClose();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold font-mono uppercase tracking-widest">Nueva Cuenta</DialogTitle>
+          <DialogTitle className="text-xl font-bold font-mono uppercase tracking-widest">
+            {account ? 'Editar Cuenta' : 'Nueva Cuenta'}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <div className="space-y-2">
@@ -93,11 +151,24 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onS
             />
           </div>
 
-          <DialogFooter className="pt-4">
-            <Button type="button" variant="ghost" onClick={onClose} className="text-zinc-500">Cancelar</Button>
-            <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-              {loading ? 'Creando...' : 'Crear Cuenta'}
-            </Button>
+          <DialogFooter className="pt-4 flex flex-col sm:flex-row gap-2">
+            {account && (
+              <Button 
+                type="button" 
+                variant="destructive" 
+                onClick={handleDelete} 
+                disabled={deleteLoading}
+                className="sm:mr-auto"
+              >
+                {deleteLoading ? 'Eliminando...' : 'Eliminar'}
+              </Button>
+            )}
+            <div className="flex gap-2">
+              <Button type="button" variant="ghost" onClick={onClose} className="text-zinc-500">Cancelar</Button>
+              <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                {loading ? (account ? 'Guardando...' : 'Creando...') : (account ? 'Guardar Cambios' : 'Crear Cuenta')}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
