@@ -97,7 +97,7 @@ export const Dashboard: React.FC = () => {
                 <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
                   <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Gestión de Cuentas</DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-zinc-800" />
-                  <DropdownMenuItem onClick={() => setIsAccModalOpen(true)} className="cursor-pointer">
+                  <DropdownMenuItem onSelect={() => setIsAccModalOpen(true)} className="cursor-pointer">
                     <PlusCircle className="w-4 h-4 mr-2" /> Agregar Cuenta
                   </DropdownMenuItem>
                   <DropdownMenuItem className="cursor-pointer">
@@ -115,7 +115,7 @@ export const Dashboard: React.FC = () => {
                 <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
                   <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Análisis Financiero</DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-zinc-800" />
-                  <DropdownMenuItem onClick={() => setShowAnnualSummary(!showAnnualSummary)} className="cursor-pointer">
+                  <DropdownMenuItem onSelect={() => setShowAnnualSummary(!showAnnualSummary)} className="cursor-pointer">
                     <BarChart3 className="w-4 h-4 mr-2" /> 
                     {showAnnualSummary ? 'Ocultar Consolidado' : 'Ver Consolidado Anual'}
                   </DropdownMenuItem>
@@ -212,7 +212,6 @@ export const Dashboard: React.FC = () => {
               <CreditCard className="w-4 h-4" strokeWidth={1.5} />
               Mis Cuentas Virtuales
             </h2>
-            <Button variant="link" onClick={() => setIsAccModalOpen(true)} className="text-xs text-indigo-400 p-0 h-auto">Agregar Cuenta</Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {accounts.map((acc, i) => (
