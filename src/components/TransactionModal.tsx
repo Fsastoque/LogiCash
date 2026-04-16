@@ -90,12 +90,12 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
             <div className="space-y-2">
               <Label className="text-zinc-400 text-xs uppercase">Tipo</Label>
               <Select value={formData.tipo} onValueChange={(v) => setFormData({...formData, tipo: v})}>
-                <SelectTrigger className="bg-zinc-950 border-zinc-800">
+                <SelectTrigger className="bg-zinc-950 border-zinc-800 capitalize">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-                  <SelectItem value="egreso">Egreso</SelectItem>
-                  <SelectItem value="ingreso">Ingreso</SelectItem>
+                  <SelectItem value="egreso" className="capitalize">Egreso</SelectItem>
+                  <SelectItem value="ingreso" className="capitalize">Ingreso</SelectItem>
                 </SelectContent>
               </Select>
             </div>
