@@ -105,12 +105,12 @@ export const AnnualSummary: React.FC = () => {
                     const val = data[cat.id]?.[m] || 0;
                     return (
                       <TableCell key={m} className={`text-right font-mono text-[11px] ${val < 0 ? 'text-rose-500' : val > 0 ? 'text-emerald-400' : 'text-zinc-700'}`}>
-                        {val !== 0 ? val.toLocaleString('es-CO', { minimumFractionDigits: 0 }) : '—'}
+                        {val !== 0 ? val.toLocaleString('de-DE', { minimumFractionDigits: 0 }) : '—'}
                       </TableCell>
                     );
                   })}
                   <TableCell className="text-right font-bold font-mono text-xs border-l border-zinc-800 text-zinc-100 bg-zinc-900/30 group-hover:bg-zinc-800/50 transition-colors">
-                    {(data[cat.id]?.reduce((a, b) => a + b, 0) || 0).toLocaleString('es-CO')}
+                    {(data[cat.id]?.reduce((a, b) => a + b, 0) || 0).toLocaleString('de-DE')}
                   </TableCell>
                 </TableRow>
               ))}
