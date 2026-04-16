@@ -17,6 +17,7 @@ interface TransactionModalProps {
 export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [dataReady, setDataReady] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   
@@ -29,20 +30,36 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
     fecha: new Date().toISOString().split('T')[0]
   });
 
+  // Reset form when modal opens/closes
   useEffect(() => {
-    if (isOpen && user) {
-      fetchData();
+    if (isOpen) {
+      setFormData({
+        monto: '',
+        descripcion: '',
+        tipo: 'egreso',
+        categoria_id: '',
+        cuenta_id: '',
+        fecha: new Date().toISOString().split('T')[0]
+      });
+      setDataReady(false);
+      if (user) fetchData();
     }
   }, [isOpen, user]);
 
   const fetchData = async () => {
-    const [catRes, accRes] = await Promise.all([
-      supabase.from('categorias').select('*').eq('user_id', user?.id),
-      supabase.from('cuentas').select('*').eq('user_id', user?.id)
-    ]);
-    
-    if (catRes.data) setCategories(catRes.data);
-    if (accRes.data) setAccounts(accRes.data);
+    try {
+      const [catRes, accRes] = await Promise.all([
+        supabase.from('categorias').select('*').eq('user_id', user?.id).order('nombre'),
+        supabase.from('cuentas').select('*').eq('user_id', user?.id).order('nombre')
+      ]);
+      
+      if (catRes.data) setCategories(catRes.data);
+      if (accRes.data) setAccounts(accRes.data);
+      setDataReady(true);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setDataReady(true);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,75 +103,95 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
           <DialogTitle className="text-xl font-bold font-mono uppercase tracking-widest">Nueva Transacción</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-zinc-400 text-xs uppercase">Tipo</Label>
-              <Select value={formData.tipo} onValueChange={(v) => setFormData({...formData, tipo: v})}>
-                <SelectTrigger className="bg-zinc-950 border-zinc-800 capitalize">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-                  <SelectItem value="egreso" className="capitalize">Egreso</SelectItem>
-                  <SelectItem value="ingreso" className="capitalize">Ingreso</SelectItem>
-                </SelectContent>
-              </Select>
+          {!dataReady ? (
+            <div className="py-20 text-center text-zinc-500 font-mono text-xs animate-pulse uppercase tracking-widest">
+              Cargando configuraciones...
             </div>
-            <div className="space-y-2">
-              <Label className="text-zinc-400 text-xs uppercase">Monto</Label>
-              <Input 
-                type="number" 
-                step="0.01"
-                required
-                className="bg-zinc-950 border-zinc-800"
-                value={formData.monto}
-                onChange={(e) => setFormData({...formData, monto: e.target.value})}
-              />
-            </div>
-          </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-zinc-400 text-xs uppercase">Tipo</Label>
+                  <Select 
+                    value={formData.tipo} 
+                    onValueChange={(v) => setFormData(prev => ({...prev, tipo: v}))}
+                  >
+                    <SelectTrigger className="bg-zinc-950 border-zinc-800 capitalize">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                      <SelectItem value="egreso" className="capitalize">Egreso</SelectItem>
+                      <SelectItem value="ingreso" className="capitalize">Ingreso</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-zinc-400 text-xs uppercase">Monto</Label>
+                  <Input 
+                    type="number" 
+                    step="0.01"
+                    required
+                    className="bg-zinc-950 border-zinc-800"
+                    value={formData.monto}
+                    onChange={(e) => setFormData(prev => ({...prev, monto: e.target.value}))}
+                  />
+                </div>
+              </div>
 
-          <div className="space-y-2">
-            <Label className="text-zinc-400 text-xs uppercase">Cuenta</Label>
-            <Select value={formData.cuenta_id} onValueChange={(v) => setFormData({...formData, cuenta_id: v})}>
-              <SelectTrigger className="bg-zinc-950 border-zinc-800">
-                <SelectValue placeholder="Seleccionar cuenta" />
-              </SelectTrigger>
-              <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-                {accounts.map(acc => (
-                  <SelectItem key={acc.id} value={acc.id}>{acc.nombre}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              <div className="space-y-2">
+                <Label className="text-zinc-400 text-xs uppercase">Cuenta</Label>
+                <Select 
+                  value={formData.cuenta_id} 
+                  onValueChange={(v) => setFormData(prev => ({...prev, cuenta_id: v}))}
+                >
+                  <SelectTrigger className="bg-zinc-950 border-zinc-800">
+                    <SelectValue placeholder="Seleccionar cuenta" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                    {accounts.map(acc => (
+                      <SelectItem key={acc.id} value={acc.id}>{acc.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="space-y-2">
-            <Label className="text-zinc-400 text-xs uppercase">Categoría</Label>
-            <Select value={formData.categoria_id} onValueChange={(v) => setFormData({...formData, categoria_id: v})}>
-              <SelectTrigger className="bg-zinc-950 border-zinc-800">
-                <SelectValue placeholder="Seleccionar categoría" />
-              </SelectTrigger>
-              <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-                {categories.map(cat => (
-                  <SelectItem key={cat.id} value={cat.id}>{cat.nombre}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              <div className="space-y-2">
+                <Label className="text-zinc-400 text-xs uppercase">Categoría</Label>
+                <Select 
+                  value={formData.categoria_id} 
+                  onValueChange={(v) => setFormData(prev => ({...prev, categoria_id: v}))}
+                >
+                  <SelectTrigger className="bg-zinc-950 border-zinc-800">
+                    <SelectValue placeholder="Seleccionar categoría" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                    {categories.map(cat => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="space-y-2">
-            <Label className="text-zinc-400 text-xs uppercase">Descripción</Label>
-            <Input 
-              className="bg-zinc-950 border-zinc-800"
-              value={formData.descripcion}
-              onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
-            />
-          </div>
+              <div className="space-y-2">
+                <Label className="text-zinc-400 text-xs uppercase">Descripción</Label>
+                <Input 
+                  className="bg-zinc-950 border-zinc-800"
+                  value={formData.descripcion}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormData(prev => ({...prev, descripcion: val}));
+                  }}
+                />
+              </div>
 
-          <DialogFooter className="pt-4">
-            <Button type="button" variant="ghost" onClick={onClose} className="text-zinc-500">Cancelar</Button>
-            <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-              {loading ? 'Guardando...' : 'Registrar'}
-            </Button>
-          </DialogFooter>
+              <DialogFooter className="pt-4">
+                <Button type="button" variant="ghost" onClick={onClose} className="text-zinc-500">Cancelar</Button>
+                <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                  {loading ? 'Guardando...' : 'Registrar'}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </form>
       </DialogContent>
     </Dialog>
