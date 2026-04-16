@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { TransactionModal } from './TransactionModal';
 import { AccountModal } from './AccountModal';
+import { CategoryModal } from './CategoryModal';
 
 export const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -30,6 +31,7 @@ export const Dashboard: React.FC = () => {
   // Modal states
   const [isTransModalOpen, setIsTransModalOpen] = useState(false);
   const [isAccModalOpen, setIsAccModalOpen] = useState(false);
+  const [isCatModalOpen, setIsCatModalOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
 
   const currentMonthName = format(new Date(), 'MMMM', { locale: es });
@@ -126,7 +128,10 @@ export const Dashboard: React.FC = () => {
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator className="bg-zinc-800" />
-                  <DropdownMenuItem className="cursor-pointer">
+                  <DropdownMenuItem 
+                    onClick={() => setIsCatModalOpen(true)}
+                    className="cursor-pointer"
+                  >
                     <Settings className="w-4 h-4 mr-2" /> Categorías
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -188,7 +193,12 @@ export const Dashboard: React.FC = () => {
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setIsCatModalOpen(true)}
+                className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900"
+              >
                 Categorías
               </Button>
             </nav>
@@ -375,6 +385,11 @@ export const Dashboard: React.FC = () => {
         }} 
         onSuccess={fetchData}
         account={selectedAccount}
+      />
+      <CategoryModal
+        isOpen={isCatModalOpen}
+        onClose={() => setIsCatModalOpen(false)}
+        onSuccess={() => {}}
       />
     </div>
   );
