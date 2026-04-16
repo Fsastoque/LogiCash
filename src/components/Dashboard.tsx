@@ -230,7 +230,7 @@ export const Dashboard: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-4xl font-bold tracking-tighter text-zinc-100">
-                  ${(profile?.saldo_total || 0).toLocaleString('es-CO')}
+                  ${(profile?.saldo_total || 0).toLocaleString('de-DE')}
                 </div>
                 <div className="flex items-center gap-2 mt-4">
                   <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 font-mono text-[10px]">
@@ -251,7 +251,7 @@ export const Dashboard: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-emerald-400">
-                    +${stats.ingresos.toLocaleString('es-CO')}
+                    +${stats.ingresos.toLocaleString('de-DE')}
                   </div>
                   <div className="w-full bg-zinc-800 h-1 mt-4 rounded-full overflow-hidden">
                     <div className="bg-emerald-500 h-full w-[65%]" />
@@ -268,7 +268,7 @@ export const Dashboard: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-rose-500">
-                    -${stats.egresos.toLocaleString('es-CO')}
+                    -${stats.egresos.toLocaleString('de-DE')}
                   </div>
                   <div className="w-full bg-zinc-800 h-1 mt-4 rounded-full overflow-hidden">
                     <div className="bg-rose-500 h-full w-[40%]" />
@@ -314,7 +314,7 @@ export const Dashboard: React.FC = () => {
                   </CardHeader>
                   <CardContent className="relative z-10 pt-4">
                     <div className="text-3xl font-bold text-zinc-100 tracking-tight mb-6">
-                      ${Number(acc.saldo_actual).toLocaleString('es-CO')}
+                      ${Number(acc.saldo_actual).toLocaleString('de-DE')}
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="text-[10px] font-mono text-zinc-500">**** **** **** {Math.floor(Math.random() * 9000) + 1000}</div>
