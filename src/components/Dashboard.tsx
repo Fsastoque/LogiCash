@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { AnnualSummary } from './AnnualSummary';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,9 +16,18 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, 
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { TransactionModal } from './TransactionModal';
-import { AccountModal } from './AccountModal';
-import { CategoryModal } from './CategoryModal';
+
+// Lazy load feature components
+const AnnualSummary = lazy(() => import('./AnnualSummary').then(m => ({ default: m.AnnualSummary })));
+const TransactionModal = lazy(() => import('./TransactionModal').then(m => ({ default: m.TransactionModal })));
+const AccountModal = lazy(() => import('./AccountModal').then(m => ({ default: m.AccountModal })));
+const CategoryModal = lazy(() => import('./CategoryModal').then(m => ({ default: m.CategoryModal })));
+
+const LoadingFallback = () => (
+  <div className="p-12 text-center text-zinc-500 font-mono text-[10px] uppercase tracking-widest animate-pulse">
+    Cargando Componente...
+  </div>
+);
 
 export const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -89,7 +97,7 @@ export const Dashboard: React.FC = () => {
             {/* Mobile Menu */}
             <div className="md:hidden">
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+                <DropdownMenuTrigger>
                   <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900">
                     <Menu className="w-5 h-5" />
                   </Button>
@@ -138,7 +146,7 @@ export const Dashboard: React.FC = () => {
             {/* Desktop Navigation Menu */}
             <nav className="hidden md:flex items-center gap-1">
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+                <DropdownMenuTrigger>
                   <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900">
                     Cuentas <ChevronDown className="w-3 h-3 ml-1" />
                   </Button>
@@ -165,7 +173,7 @@ export const Dashboard: React.FC = () => {
               </DropdownMenu>
 
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+                <DropdownMenuTrigger>
                   <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900">
                     Reportes <ChevronDown className="w-3 h-3 ml-1" />
                   </Button>
@@ -350,7 +358,9 @@ export const Dashboard: React.FC = () => {
               exit={{ opacity: 0, height: 0 }}
               className="overflow-hidden"
             >
-              <AnnualSummary />
+              <Suspense fallback={<LoadingFallback />}>
+                <AnnualSummary />
+              </Suspense>
             </motion.div>
           )}
         </AnimatePresence>
@@ -369,27 +379,29 @@ export const Dashboard: React.FC = () => {
       </main>
 
       {/* Modals */}
-      <TransactionModal 
-        isOpen={isTransModalOpen} 
-        onClose={() => setIsTransModalOpen(false)} 
-        onSuccess={fetchData}
-        accounts={accounts}
-        categories={categories}
-      />
-      <AccountModal 
-        isOpen={isAccModalOpen} 
-        onClose={() => {
-          setIsAccModalOpen(false);
-          setSelectedAccount(null);
-        }} 
-        onSuccess={fetchData}
-        account={selectedAccount}
-      />
-      <CategoryModal
-        isOpen={isCatModalOpen}
-        onClose={() => setIsCatModalOpen(false)}
-        onSuccess={fetchData}
-      />
+      <Suspense fallback={null}>
+        <TransactionModal 
+          isOpen={isTransModalOpen} 
+          onClose={() => setIsTransModalOpen(false)} 
+          onSuccess={fetchData}
+          accounts={accounts}
+          categories={categories}
+        />
+        <AccountModal 
+          isOpen={isAccModalOpen} 
+          onClose={() => {
+            setIsAccModalOpen(false);
+            setSelectedAccount(null);
+          }} 
+          onSuccess={fetchData}
+          account={selectedAccount}
+        />
+        <CategoryModal
+          isOpen={isCatModalOpen}
+          onClose={() => setIsCatModalOpen(false)}
+          onSuccess={fetchData}
+        />
+      </Suspense>
     </div>
   );
 };

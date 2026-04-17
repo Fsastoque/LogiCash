@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { AuthForm } from './AuthForm';
+
+const AuthForm = lazy(() => import('./AuthForm').then(m => ({ default: m.AuthForm })));
 
 export const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -17,7 +18,15 @@ export const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({ child
   }
 
   if (!user) {
-    return <AuthForm />;
+    return (
+      <Suspense fallback={
+        <div className="flex items-center justify-center min-h-screen bg-zinc-950">
+          <div className="text-zinc-500 font-mono text-[10px] uppercase animate-pulse">Cargando Módulo de Autenticación...</div>
+        </div>
+      }>
+        <AuthForm />
+      </Suspense>
+    );
   }
 
   return <>{children}</>;
