@@ -112,17 +112,7 @@ const TransactionForm: React.FC<{
     }
   };
 
-  // Stability Check: Only render Selects when we have valid data lists
-  // This prevents the UUID display issue which occurs when value exists but option doesn't
-  const isDataStable = accounts.length > 0 && categories.length > 0;
-
-  if (!isDataStable) {
-    return (
-      <div className="py-20 text-center text-zinc-500 font-mono text-xs animate-pulse">
-        VALIDANDO RECURSOS DISPONIBLES...
-      </div>
-    );
-  }
+  const isDataLoading = accounts.length === 0 || categories.length === 0;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-4">
@@ -131,7 +121,9 @@ const TransactionForm: React.FC<{
           <Label className="text-zinc-400 text-xs uppercase">Tipo</Label>
           <Select 
             value={formData.tipo} 
-            onValueChange={(v) => setFormData(prev => ({...prev, tipo: v}))}
+            onValueChange={(v) => {
+              if (v) setFormData(prev => ({...prev, tipo: v}));
+            }}
           >
             <SelectTrigger className="bg-zinc-950 border-zinc-800 capitalize w-full">
               <SelectValue />
@@ -159,13 +151,14 @@ const TransactionForm: React.FC<{
       <div className="space-y-2">
         <Label className="text-zinc-400 text-xs uppercase">Cuenta</Label>
         <Select 
-          value={formData.cuenta_id} 
+          value={formData.cuenta_id || undefined} 
           onValueChange={(v) => {
             if (v) setFormData(prev => ({...prev, cuenta_id: v}));
           }}
+          disabled={isDataLoading}
         >
           <SelectTrigger className="bg-zinc-950 border-zinc-800 w-full text-left">
-            <SelectValue placeholder="Seleccionar cuenta" />
+            <SelectValue placeholder={isDataLoading ? "Cargando..." : "Seleccionar cuenta"} />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
             {accounts.map(acc => (
@@ -178,13 +171,14 @@ const TransactionForm: React.FC<{
       <div className="space-y-2">
         <Label className="text-zinc-400 text-xs uppercase">Categoría</Label>
         <Select 
-          value={formData.categoria_id} 
+          value={formData.categoria_id || undefined} 
           onValueChange={(v) => {
             if (v) setFormData(prev => ({...prev, categoria_id: v}));
           }}
+          disabled={isDataLoading}
         >
           <SelectTrigger className="bg-zinc-950 border-zinc-800 w-full text-left">
-            <SelectValue placeholder="Seleccionar categoría" />
+            <SelectValue placeholder={isDataLoading ? "Cargando..." : "Seleccionar categoría"} />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
             {categories.map(cat => (

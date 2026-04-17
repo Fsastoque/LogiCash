@@ -160,10 +160,13 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleSignOut = async () => {
-    // Small delay to allow menu to close gracefully and avoid Base UI context errors
-    setTimeout(async () => {
+    try {
+      // Small delay to allow menu to close gracefully and avoid Base UI context issues
+      await new Promise(resolve => setTimeout(resolve, 100));
       await signOut();
-    }, 100);
+    } catch (err: any) {
+      error('Error al salir', err);
+    }
   };
 
   return (
@@ -298,11 +301,9 @@ export const Dashboard: React.FC = () => {
             </Button>
             
             <DropdownMenu>
-              <DropdownMenuTrigger>
-                <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center cursor-pointer hover:border-zinc-500 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
-                  <div className="text-[10px] font-bold text-zinc-400">
-                    {user?.email?.charAt(0)?.toUpperCase() || 'U'}
-                  </div>
+              <DropdownMenuTrigger className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center cursor-pointer hover:border-zinc-500 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+                <div className="text-[10px] font-bold text-zinc-400">
+                  {user?.email?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100 w-56" align="end">

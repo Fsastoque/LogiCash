@@ -102,7 +102,11 @@ export const SavingsGoals: React.FC<SavingsGoalsProps> = ({ goals, onAddGoal, on
           <div className="lg:col-span-3 h-40 border-2 border-dashed border-zinc-800 rounded-2xl flex flex-col items-center justify-center text-zinc-500 space-y-3">
             <Target className="w-8 h-8 opacity-20" />
             <p className="text-xs font-mono uppercase tracking-widest">Define tu próxima meta de ahorro</p>
-            <Button onClick={onAddGoal} size="sm" variant="outline" className="border-zinc-800 text-[10px] uppercase">
+            <Button 
+              onClick={onAddGoal} 
+              size="sm" 
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 h-9 rounded-full transition-all shadow-lg shadow-indigo-500/20 uppercase text-[10px]"
+            >
               Comenzar Ahora
             </Button>
           </div>
