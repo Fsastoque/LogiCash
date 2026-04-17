@@ -25,6 +25,7 @@ export const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [accounts, setAccounts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [stats, setStats] = useState({ ingresos: 0, egresos: 0 });
   const [showAnnualSummary, setShowAnnualSummary] = useState(false);
   
@@ -39,20 +40,16 @@ export const Dashboard: React.FC = () => {
   const fetchData = async () => {
     if (!user) return;
 
-    // Fetch Profile
-    const { data: profData } = await supabase
-      .from('perfiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-    if (profData) setProfile(profData);
+    // Fetch Profile, Accounts and Categories in parallel for efficiency and consistency
+    const [profRes, accRes, catRes] = await Promise.all([
+      supabase.from('perfiles').select('*').eq('id', user.id).single(),
+      supabase.from('cuentas').select('*').eq('user_id', user.id).order('nombre'),
+      supabase.from('categorias').select('*').eq('user_id', user.id).order('nombre')
+    ]);
 
-    // Fetch Accounts
-    const { data: accData } = await supabase
-      .from('cuentas')
-      .select('*')
-      .eq('user_id', user.id);
-    if (accData) setAccounts(accData);
+    if (profRes.data) setProfile(profRes.data);
+    if (accRes.data) setAccounts(accRes.data);
+    if (catRes.data) setCategories(catRes.data);
 
     // Fetch Monthly Stats
     const start = format(startOfMonth(new Date()), 'yyyy-MM-dd');
@@ -376,6 +373,8 @@ export const Dashboard: React.FC = () => {
         isOpen={isTransModalOpen} 
         onClose={() => setIsTransModalOpen(false)} 
         onSuccess={fetchData}
+        accounts={accounts}
+        categories={categories}
       />
       <AccountModal 
         isOpen={isAccModalOpen} 
@@ -389,7 +388,7 @@ export const Dashboard: React.FC = () => {
       <CategoryModal
         isOpen={isCatModalOpen}
         onClose={() => setIsCatModalOpen(false)}
-        onSuccess={() => {}}
+        onSuccess={fetchData}
       />
     </div>
   );
