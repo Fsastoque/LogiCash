@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   LogOut, Wallet, TrendingUp, TrendingDown, PlusCircle, 
-  CreditCard, ArrowUpRight, ArrowDownRight, Zap, Menu, 
+  CreditCard, ArrowUpRight, ArrowDownRight, Menu, 
   ChevronDown, BarChart3, Calendar, Settings, Trash2,
   Eye, EyeOff, FileDown, Target
 } from 'lucide-react';

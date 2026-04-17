@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
-import { Zap, ArrowRight, Mail, Lock, UserPlus, LogIn, ChevronRight } from 'lucide-react';
+import { ArrowRight, Mail, Lock, UserPlus, LogIn, ChevronRight } from 'lucide-react';
 
 export const AuthForm: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
