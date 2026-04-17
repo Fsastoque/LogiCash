@@ -36,6 +36,20 @@ const TransactionForm: React.FC<{
     fecha: new Date().toISOString().split('T')[0]
   });
 
+  const [savingSettings, setSavingSettings] = useState<any>(null);
+  const [goals, setGoals] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (!user) return;
+      const { data: profile } = await supabase.from('perfiles').select('ahorro_porcentaje').eq('id', user.id).single();
+      const { data: metas } = await supabase.from('metas_ahorro').select('*').eq('user_id', user.id);
+      if (profile) setSavingSettings(profile);
+      if (metas) setGoals(metas);
+    };
+    fetchSettings();
+  }, [user]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -47,25 +61,44 @@ const TransactionForm: React.FC<{
 
     setLoading(true);
     try {
+      const montoNum = parseFloat(formData.monto);
+      
+      // 1. Insert transaction
       const { error } = await supabase.from('transacciones').insert([{
         ...formData,
         user_id: user.id,
-        monto: parseFloat(formData.monto)
+        monto: montoNum
       }]);
 
       if (error) throw error;
 
-      // Update account balance
+      // 2. Update account balance
       const accountId = String(formData.cuenta_id);
       const account = accounts.find(a => String(a.id) === accountId);
       
       if (account) {
-        const montoNum = parseFloat(formData.monto);
         const newBalance = formData.tipo === 'ingreso' 
           ? Number(account.saldo_actual) + montoNum
           : Number(account.saldo_actual) - montoNum;
         
         await supabase.from('cuentas').update({ saldo_actual: newBalance }).eq('id', account.id);
+      }
+
+      // 3. Automatic Saving Logic
+      if (formData.tipo === 'ingreso' && savingSettings?.ahorro_porcentaje > 0 && goals.length > 0) {
+        const ahorroMonto = (montoNum * savingSettings.ahorro_porcentaje) / 100;
+        // Apply to the first goal for simplicity in this version
+        const targetGoal = goals[0];
+        if (targetGoal) {
+          const { error: goalErr } = await supabase
+            .from('metas_ahorro')
+            .update({ monto_actual: Number(targetGoal.monto_actual) + ahorroMonto })
+            .eq('id', targetGoal.id);
+          
+          if (!goalErr) {
+            toast.info(`Ahorro automático: $${ahorroMonto.toLocaleString()} asignados a "${targetGoal.nombre}"`);
+          }
+        }
       }
 
       toast.success('Transacción registrada');

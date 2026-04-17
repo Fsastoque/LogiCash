@@ -7,21 +7,26 @@ import { Badge } from '@/components/ui/badge';
 import { 
   LogOut, Wallet, TrendingUp, TrendingDown, PlusCircle, 
   CreditCard, ArrowUpRight, ArrowDownRight, Zap, Menu, 
-  ChevronDown, BarChart3, Calendar, Settings 
+  ChevronDown, BarChart3, Calendar, Settings, Trash2,
+  Eye, EyeOff, FileDown, Target
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { toast } from 'sonner';
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, 
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
+import { ExportService } from '../lib/ExportService';
+import { SavingsGoals } from './SavingsGoals';
 
 // Lazy load feature components
 const AnnualSummary = lazy(() => import('./AnnualSummary').then(m => ({ default: m.AnnualSummary })));
 const TransactionModal = lazy(() => import('./TransactionModal').then(m => ({ default: m.TransactionModal })));
 const AccountModal = lazy(() => import('./AccountModal').then(m => ({ default: m.AccountModal })));
 const CategoryModal = lazy(() => import('./CategoryModal').then(m => ({ default: m.CategoryModal })));
+const GoalModal = lazy(() => import('./GoalModal').then(m => ({ default: m.GoalModal })));
 
 const LoadingFallback = () => (
   <div className="p-12 text-center text-zinc-500 font-mono text-[10px] uppercase tracking-widest animate-pulse">
@@ -34,30 +39,53 @@ export const Dashboard: React.FC = () => {
   const [profile, setProfile] = useState<any>(null);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [metas, setMetas] = useState<any[]>([]);
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [stats, setStats] = useState({ ingresos: 0, egresos: 0 });
   const [showAnnualSummary, setShowAnnualSummary] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isPrivate, setIsPrivate] = useState(false);
   
   // Modal states
   const [isTransModalOpen, setIsTransModalOpen] = useState(false);
   const [isAccModalOpen, setIsAccModalOpen] = useState(false);
   const [isCatModalOpen, setIsCatModalOpen] = useState(false);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
+  const [selectedGoal, setSelectedGoal] = useState<any>(null);
 
   const currentMonthName = format(new Date(), 'MMMM', { locale: es });
 
   const fetchData = async () => {
     if (!user) return;
 
-    // Fetch Profile, Accounts and Categories in parallel for efficiency and consistency
-    const [profRes, accRes, catRes] = await Promise.all([
+    // Fetch Profile, Accounts, Categories and Goals in parallel
+    const [profRes, accRes, catRes, goalRes] = await Promise.all([
       supabase.from('perfiles').select('*').eq('id', user.id).single(),
       supabase.from('cuentas').select('*').eq('user_id', user.id).order('nombre'),
-      supabase.from('categorias').select('*').eq('user_id', user.id).order('nombre')
+      supabase.from('categorias').select('*').eq('user_id', user.id).order('nombre'),
+      supabase.from('metas_ahorro').select('*').eq('user_id', user.id).order('created_at')
     ]);
 
     if (profRes.data) setProfile(profRes.data);
     if (accRes.data) setAccounts(accRes.data);
     if (catRes.data) setCategories(catRes.data);
+    if (goalRes.data) setMetas(goalRes.data);
+
+    // Fetch Recent Transactions (last 10)
+    const { data: recentData } = await supabase
+      .from('transacciones')
+      .select(`
+        *,
+        cuenta:cuentas(nombre),
+        categoria:categorias(nombre)
+      `)
+      .eq('user_id', user.id)
+      .order('fecha', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(10);
+    
+    if (recentData) setRecentTransactions(recentData);
 
     // Fetch Monthly Stats
     const start = format(startOfMonth(new Date()), 'yyyy-MM-dd');
@@ -81,66 +109,66 @@ export const Dashboard: React.FC = () => {
     fetchData();
   }, [user]);
 
+  const handleDeleteTransaction = async (transaction: any) => {
+    if (!window.confirm('¿Estás seguro de eliminar esta transacción? Esta acción revertirá el impacto en el saldo.')) {
+      return;
+    }
+
+    setDeletingId(transaction.id);
+    try {
+      // 1. Revert balance impact
+      const account = accounts.find(a => a.id === transaction.cuenta_id);
+      if (account) {
+        const montoNum = Number(transaction.monto);
+        const newBalance = transaction.tipo === 'ingreso'
+          ? Number(account.saldo_actual) - montoNum
+          : Number(account.saldo_actual) + montoNum;
+        
+        const { error: accError } = await supabase
+          .from('cuentas')
+          .update({ saldo_actual: newBalance })
+          .eq('id', account.id);
+        
+        if (accError) throw accError;
+      }
+
+      // 2. Delete transaction
+      const { error: delError } = await supabase
+        .from('transacciones')
+        .delete()
+        .eq('id', transaction.id);
+      
+      if (delError) throw delError;
+
+      toast.success('Transacción eliminada y saldo actualizado');
+      fetchData();
+    } catch (error: any) {
+      toast.error('Error al eliminar: ' + error.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleExport = (type: 'pdf' | 'excel') => {
+    if (type === 'pdf') {
+      ExportService.exportToPDF(recentTransactions, stats, profile);
+    } else {
+      ExportService.exportToExcel(recentTransactions);
+    }
+    toast.success(`Exportando a ${type.toUpperCase()}...`);
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-indigo-500/30">
       {/* Header */}
       <header className="bg-zinc-950/50 backdrop-blur-md border-b border-zinc-800 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/20">
                 <Zap className="w-5 h-5 fill-current" />
               </div>
-              <h1 className="text-xl font-bold tracking-tighter text-zinc-100 font-mono">LogiCash</h1>
-            </div>
-
-            {/* Mobile Menu */}
-            <div className="md:hidden">
-              <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900">
-                    <Menu className="w-5 h-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100 w-56">
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Cuentas</DropdownMenuLabel>
-                    <DropdownMenuItem 
-                      onClick={() => {
-                        setSelectedAccount(null);
-                        setIsAccModalOpen(true);
-                      }} 
-                      className="cursor-pointer"
-                    >
-                      <PlusCircle className="w-4 h-4 mr-2" /> Agregar Cuenta
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer">
-                      <CreditCard className="w-4 h-4 mr-2" /> Ver Todas
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator className="bg-zinc-800" />
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Reportes</DropdownMenuLabel>
-                    <DropdownMenuItem 
-                      onClick={() => setShowAnnualSummary(!showAnnualSummary)} 
-                      className="cursor-pointer"
-                    >
-                      <BarChart3 className="w-4 h-4 mr-2" /> 
-                      {showAnnualSummary ? 'Ocultar Consolidado' : 'Ver Consolidado Anual'}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer">
-                      <Calendar className="w-4 h-4 mr-2" /> Histórico de Años
-                    </DropdownMenuItem>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator className="bg-zinc-800" />
-                  <DropdownMenuItem 
-                    onClick={() => setIsCatModalOpen(true)}
-                    className="cursor-pointer"
-                  >
-                    <Settings className="w-4 h-4 mr-2" /> Categorías
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <h1 className="text-xl font-bold tracking-tighter text-zinc-100 font-mono hidden sm:block">LogiCash</h1>
             </div>
 
             {/* Desktop Navigation Menu */}
@@ -148,25 +176,36 @@ export const Dashboard: React.FC = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger>
                   <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900">
-                    Cuentas <ChevronDown className="w-3 h-3 ml-1" />
+                    Bóveda <ChevronDown className="w-3 h-3 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100 w-52">
                   <DropdownMenuGroup>
-                    <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Gestión de Cuentas</DropdownMenuLabel>
+                    <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Gestión de Activos</DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-zinc-800" />
                     <DropdownMenuItem 
                       onClick={() => {
-                        console.log('Opening Account Modal');
                         setSelectedAccount(null);
                         setIsAccModalOpen(true);
                       }} 
                       className="cursor-pointer"
                     >
-                      <PlusCircle className="w-4 h-4 mr-2" /> Agregar Cuenta
+                      <PlusCircle className="w-4 h-4 mr-2" /> Nueva Cuenta
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer">
-                      <CreditCard className="w-4 h-4 mr-2" /> Ver Todas
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        setSelectedGoal(null);
+                        setIsGoalModalOpen(true);
+                      }} 
+                      className="cursor-pointer"
+                    >
+                      <Target className="w-4 h-4 mr-2" /> Nueva Meta de Ahorro
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => setIsCatModalOpen(true)}
+                      className="cursor-pointer"
+                    >
+                      <Settings className="w-4 h-4 mr-2" /> Categorías
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
@@ -175,46 +214,69 @@ export const Dashboard: React.FC = () => {
               <DropdownMenu>
                 <DropdownMenuTrigger>
                   <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900">
-                    Reportes <ChevronDown className="w-3 h-3 ml-1" />
+                    Informes <ChevronDown className="w-3 h-3 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100 w-52">
                   <DropdownMenuGroup>
-                    <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Análisis Financiero</DropdownMenuLabel>
+                    <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Análisis y Exportación</DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-zinc-800" />
                     <DropdownMenuItem 
-                      onClick={() => {
-                        console.log('Toggling Annual Summary', !showAnnualSummary);
-                        setShowAnnualSummary(!showAnnualSummary);
-                      }} 
+                      onClick={() => setShowAnnualSummary(!showAnnualSummary)} 
                       className="cursor-pointer"
                     >
                       <BarChart3 className="w-4 h-4 mr-2" /> 
-                      {showAnnualSummary ? 'Ocultar Consolidado' : 'Ver Consolidado Anual'}
+                      {showAnnualSummary ? 'Ocultar Consolidado' : 'Dashboard Anual'}
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer">
-                      <Calendar className="w-4 h-4 mr-2" /> Histórico de Años
+                    <DropdownMenuSeparator className="bg-zinc-800" />
+                    <DropdownMenuItem onClick={() => handleExport('pdf')} className="cursor-pointer text-indigo-400">
+                      <FileDown className="w-4 h-4 mr-2" /> Exportar PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport('excel')} className="cursor-pointer text-emerald-400">
+                      <FileDown className="w-4 h-4 mr-2" /> Exportar Excel
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setIsCatModalOpen(true)}
-                className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900"
-              >
-                Categorías
-              </Button>
             </nav>
           </div>
 
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-zinc-500 font-mono hidden sm:inline-block">{user?.email}</span>
-            <Button variant="ghost" size="sm" onClick={signOut} className="text-zinc-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors">
-              <LogOut className="w-4 h-4 mr-2" strokeWidth={1.5} />
-              Salir
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setIsPrivate(!isPrivate);
+                toast.info(isPrivate ? 'Modo público' : 'Modo privacidad activado');
+              }}
+              className={`transition-colors h-9 w-9 ${isPrivate ? 'text-indigo-400 bg-indigo-500/10' : 'text-zinc-500 hover:text-zinc-200'}`}
+            >
+              {isPrivate ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger>
+                <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center cursor-pointer hover:border-zinc-500 transition-all">
+                  <div className="text-[10px] font-bold text-zinc-400">{user?.email?.charAt(0).toUpperCase()}</div>
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100 w-56">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">Mi Perfil</p>
+                    <p className="text-xs leading-none text-zinc-500">{user?.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-zinc-800" />
+                <DropdownMenuItem className="cursor-not-allowed opacity-50">
+                  <Settings className="w-4 h-4 mr-2" /> Ajustes de Ahorro
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-zinc-800" />
+                <DropdownMenuItem onClick={signOut} className="text-rose-500">
+                  <LogOut className="w-4 h-4 mr-2" /> Cerrar Sesión
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
@@ -235,7 +297,7 @@ export const Dashboard: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-4xl font-bold tracking-tighter text-zinc-100">
-                  ${(profile?.saldo_total || 0).toLocaleString('de-DE')}
+                  {isPrivate ? '••••••••' : `$${(profile?.saldo_total || 0).toLocaleString('de-DE')}`}
                 </div>
                 <div className="flex items-center gap-2 mt-4">
                   <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 font-mono text-[10px]">
@@ -256,7 +318,7 @@ export const Dashboard: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-emerald-400">
-                    +${stats.ingresos.toLocaleString('de-DE')}
+                    {isPrivate ? '••••••' : `+$${stats.ingresos.toLocaleString('de-DE')}`}
                   </div>
                   <div className="w-full bg-zinc-800 h-1 mt-4 rounded-full overflow-hidden">
                     <div className="bg-emerald-500 h-full w-[65%]" />
@@ -273,7 +335,7 @@ export const Dashboard: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-rose-500">
-                    -${stats.egresos.toLocaleString('de-DE')}
+                    {isPrivate ? '••••••' : `-$${stats.egresos.toLocaleString('de-DE')}`}
                   </div>
                   <div className="w-full bg-zinc-800 h-1 mt-4 rounded-full overflow-hidden">
                     <div className="bg-rose-500 h-full w-[40%]" />
@@ -319,7 +381,7 @@ export const Dashboard: React.FC = () => {
                   </CardHeader>
                   <CardContent className="relative z-10 pt-4">
                     <div className="text-3xl font-bold text-zinc-100 tracking-tight mb-6">
-                      ${Number(acc.saldo_actual).toLocaleString('de-DE')}
+                      {isPrivate ? '••••••' : `$${Number(acc.saldo_actual).toLocaleString('de-DE')}`}
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="text-[10px] font-mono text-zinc-500">**** **** **** {Math.floor(Math.random() * 9000) + 1000}</div>
@@ -349,6 +411,20 @@ export const Dashboard: React.FC = () => {
           </div>
         </section>
 
+        {/* Savings Goals Section */}
+        <SavingsGoals 
+          goals={metas} 
+          onAddGoal={() => {
+            setSelectedGoal(null);
+            setIsGoalModalOpen(true);
+          }}
+          onEditGoal={(goal) => {
+            setSelectedGoal(goal);
+            setIsGoalModalOpen(true);
+          }}
+          isPrivate={isPrivate}
+        />
+
         {/* Annual Summary Section (Conditional) */}
         <AnimatePresence>
           {showAnnualSummary && (
@@ -364,6 +440,79 @@ export const Dashboard: React.FC = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Recent Transactions Section */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+              <Calendar className="w-4 h-4" strokeWidth={1.5} />
+              Últimos Movimientos
+            </h2>
+          </div>
+          
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-zinc-950/50 border-b border-zinc-800">
+                    <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest">Fecha</th>
+                    <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest">Descripción</th>
+                    <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest">Cuenta / Categoría</th>
+                    <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest text-right">Monto</th>
+                    <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest text-center">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/50">
+                  {recentTransactions.map((tx) => (
+                    <tr key={tx.id} className="hover:bg-zinc-800/30 transition-colors group">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-xs font-mono text-zinc-400">
+                          {format(parseISO(tx.fecha), 'dd MMM', { locale: es })}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-zinc-200">{tx.descripcion || 'Sin descripción'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded border border-zinc-700 w-fit">
+                            {tx.cuenta?.nombre}
+                          </span>
+                          <span className="text-[10px] text-zinc-500 italic">
+                            {tx.categoria?.nombre || 'General'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <span className={`text-sm font-bold font-mono ${tx.tipo === 'ingreso' ? 'text-emerald-400' : 'text-rose-500'}`}>
+                          {tx.tipo === 'ingreso' ? '+' : '-'}${Number(tx.monto).toLocaleString('de-DE')}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled={deletingId === tx.id}
+                          onClick={() => handleDeleteTransaction(tx)}
+                          className="text-zinc-500 hover:text-rose-500 hover:bg-rose-500/10 h-8 w-8 transition-all"
+                        >
+                          <Trash2 className={`w-4 h-4 ${deletingId === tx.id ? 'animate-pulse' : ''}`} />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {recentTransactions.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-zinc-600 font-mono text-xs italic">
+                        No hay movimientos registrados recientemente.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
 
         {/* Floating Action Button */}
         <div className="fixed bottom-8 right-8 z-30">
@@ -400,6 +549,12 @@ export const Dashboard: React.FC = () => {
           isOpen={isCatModalOpen}
           onClose={() => setIsCatModalOpen(false)}
           onSuccess={fetchData}
+        />
+        <GoalModal
+          isOpen={isGoalModalOpen}
+          onClose={() => setIsGoalModalOpen(false)}
+          onSuccess={fetchData}
+          goal={selectedGoal}
         />
       </Suspense>
     </div>
