@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { useNotify } from '../hooks/useNotify';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +14,7 @@ export const AuthForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const { success, error } = useNotify();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,22 +22,16 @@ export const AuthForm: React.FC = () => {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        toast.success('Acceso autorizado', {
-          description: 'Sincronizando bóveda financiera...',
-        });
+        const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInErr) throw signInErr;
+        success('Acceso autorizado', 'Sincronizando bóveda financiera...');
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        toast.success('Perfil inicializado', {
-          description: 'Verifica tu identidad antes de proceder.',
-        });
+        const { error: signUpErr } = await supabase.auth.signUp({ email, password });
+        if (signUpErr) throw signUpErr;
+        success('Perfil inicializado', 'Verifica tu identidad antes de proceder.');
       }
-    } catch (error: any) {
-      toast.error('Fallo en autenticación', {
-        description: error.message || 'Credenciales inválidas o error de red.',
-      });
+    } catch (err: any) {
+      error('Fallo en autenticación', err);
     } finally {
       setLoading(false);
     }

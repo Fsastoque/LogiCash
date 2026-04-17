@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
+import { useNotify } from '../hooks/useNotify';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -25,6 +25,7 @@ const TransactionForm: React.FC<{
   onSuccess: () => void;
 }> = ({ accounts, categories, onClose, onSuccess }) => {
   const { user } = useAuth();
+  const { success, error, warning } = useNotify();
   const [loading, setLoading] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -55,7 +56,7 @@ const TransactionForm: React.FC<{
     if (!user) return;
     
     if (!formData.cuenta_id || !formData.categoria_id) {
-      toast.error('Por favor seleccione cuenta y categoría');
+      warning('Datos incompletos', 'Por favor seleccione cuenta y categoría');
       return;
     }
 
@@ -64,13 +65,13 @@ const TransactionForm: React.FC<{
       const montoNum = parseFloat(formData.monto);
       
       // 1. Insert transaction
-      const { error } = await supabase.from('transacciones').insert([{
+      const { error: insertErr } = await supabase.from('transacciones').insert([{
         ...formData,
         user_id: user.id,
         monto: montoNum
       }]);
 
-      if (error) throw error;
+      if (insertErr) throw insertErr;
 
       // 2. Update account balance
       const accountId = String(formData.cuenta_id);
@@ -96,16 +97,16 @@ const TransactionForm: React.FC<{
             .eq('id', targetGoal.id);
           
           if (!goalErr) {
-            toast.info(`Ahorro automático: $${ahorroMonto.toLocaleString()} asignados a "${targetGoal.nombre}"`);
+            success(`Ahorro automático`, `$${ahorroMonto.toLocaleString()} asignados a "${targetGoal.nombre}"`);
           }
         }
       }
 
-      toast.success('Transacción registrada');
+      success('Gasto Registrado', 'La transacción se ha procesado con éxito.');
       onSuccess();
       onClose();
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (err: any) {
+      error('Fallo en transacción', err);
     } finally {
       setLoading(false);
     }

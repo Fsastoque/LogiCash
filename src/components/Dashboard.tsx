@@ -13,7 +13,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { toast } from 'sonner';
+import { useNotify } from '../hooks/useNotify';
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, 
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger 
@@ -36,6 +36,7 @@ const LoadingFallback = () => (
 
 export const Dashboard: React.FC = () => {
   const { user, signOut } = useAuth();
+  const { success, error, warning } = useNotify();
   const [profile, setProfile] = useState<any>(null);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -140,10 +141,10 @@ export const Dashboard: React.FC = () => {
       
       if (delError) throw delError;
 
-      toast.success('Transacción eliminada y saldo actualizado');
+      success('Transacción eliminada', 'El saldo ha sido revertido correctamente.');
       fetchData();
-    } catch (error: any) {
-      toast.error('Error al eliminar: ' + error.message);
+    } catch (err: any) {
+      error('Fallo al eliminar', err);
     } finally {
       setDeletingId(null);
     }
@@ -155,7 +156,14 @@ export const Dashboard: React.FC = () => {
     } else {
       ExportService.exportToExcel(recentTransactions);
     }
-    toast.success(`Exportando a ${type.toUpperCase()}...`);
+    success(`Exportación Iniciada`, `Generando reporte en formato ${type.toUpperCase()}`);
+  };
+
+  const handleSignOut = async () => {
+    // Small delay to allow menu to close gracefully and avoid Base UI context errors
+    setTimeout(async () => {
+      await signOut();
+    }, 100);
   };
 
   return (
@@ -174,10 +182,8 @@ export const Dashboard: React.FC = () => {
             {/* Desktop Navigation Menu */}
             <nav className="hidden md:flex items-center gap-1">
               <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900">
-                    Bóveda <ChevronDown className="w-3 h-3 ml-1" />
-                  </Button>
+                <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-zinc-900 hover:text-zinc-100 h-9 px-3 text-zinc-400">
+                  Bóveda <ChevronDown className="w-3 h-3 ml-1" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100 w-52">
                   <DropdownMenuGroup>
@@ -212,10 +218,8 @@ export const Dashboard: React.FC = () => {
               </DropdownMenu>
 
               <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900">
-                    Informes <ChevronDown className="w-3 h-3 ml-1" />
-                  </Button>
+                <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-zinc-900 hover:text-zinc-100 h-9 px-3 text-zinc-400">
+                  Informes <ChevronDown className="w-3 h-3 ml-1" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100 w-52">
                   <DropdownMenuGroup>
@@ -243,10 +247,8 @@ export const Dashboard: React.FC = () => {
             {/* Mobile Menu Trigger */}
             <div className="md:hidden">
               <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-100 h-9 w-9">
-                    <Menu className="w-5 h-5" />
-                  </Button>
+                <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-zinc-900/50 hover:text-zinc-100 h-9 w-9 text-zinc-400">
+                  <Menu className="w-5 h-5" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100 w-56" align="start">
                   <DropdownMenuGroup>
@@ -284,7 +286,11 @@ export const Dashboard: React.FC = () => {
               size="icon"
               onClick={() => {
                 setIsPrivate(!isPrivate);
-                toast.info(isPrivate ? 'Modo público' : 'Modo privacidad activado');
+                if (!isPrivate) {
+                  warning('Modo Privacidad', 'Saldos sensibles ocultos');
+                } else {
+                  success('Modo Público', 'Saldos visibles de nuevo');
+                }
               }}
               className={`transition-colors h-9 w-9 ${isPrivate ? 'text-indigo-400 bg-indigo-500/10' : 'text-zinc-500 hover:text-zinc-200'}`}
             >
@@ -311,7 +317,7 @@ export const Dashboard: React.FC = () => {
                   <Settings className="w-4 h-4 mr-2" /> Ajustes de Ahorro
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-zinc-800" />
-                <DropdownMenuItem onClick={signOut} className="text-rose-500">
+                <DropdownMenuItem onClick={handleSignOut} className="text-rose-500 cursor-pointer">
                   <LogOut className="w-4 h-4 mr-2" /> Cerrar Sesión
                 </DropdownMenuItem>
               </DropdownMenuContent>

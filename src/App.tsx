@@ -9,7 +9,14 @@ export default function App() {
       <ProtectedLayout>
         <Dashboard />
       </ProtectedLayout>
-      <Toaster position="top-right" />
+      <Toaster 
+        theme="dark" 
+        position="top-right" 
+        richColors 
+        toastOptions={{
+          className: 'bg-zinc-900/80 backdrop-blur-md border border-zinc-800 text-zinc-100 font-sans shadow-2xl',
+        }}
+      />
     </AuthProvider>
   );
 }
