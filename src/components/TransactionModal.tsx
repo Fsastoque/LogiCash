@@ -12,14 +12,19 @@ interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  accounts: any[];
+  categories: any[];
 }
 
-export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, onSuccess }) => {
+export const TransactionModal: React.FC<TransactionModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onSuccess,
+  accounts,
+  categories
+}) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [dataReady, setDataReady] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [accounts, setAccounts] = useState<any[]>([]);
   
   const [formData, setFormData] = useState({
     monto: '',
@@ -31,48 +36,32 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
   });
 
   // Track if modal was already open to prevent over-fetching/resets
-  const [hasFetched, setHasFetched] = useState(false);
+  const [lastOpenState, setLastOpenState] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      if (!hasFetched) {
-        setFormData({
-          monto: '',
-          descripcion: '',
-          tipo: 'egreso',
-          categoria_id: '',
-          cuenta_id: '',
-          fecha: new Date().toISOString().split('T')[0]
-        });
-        setDataReady(false);
-        if (user) fetchData();
-        setHasFetched(true);
-      }
-    } else {
-      setHasFetched(false);
+    if (isOpen && !lastOpenState) {
+      // Just opened
+      setFormData({
+        monto: '',
+        descripcion: '',
+        tipo: 'egreso',
+        categoria_id: '',
+        cuenta_id: '',
+        fecha: new Date().toISOString().split('T')[0]
+      });
     }
-  }, [isOpen, user, hasFetched]);
-
-  const fetchData = async () => {
-    if (!user) return;
-    try {
-      const [catRes, accRes] = await Promise.all([
-        supabase.from('categorias').select('*').eq('user_id', user.id).order('nombre'),
-        supabase.from('cuentas').select('*').eq('user_id', user.id).order('nombre')
-      ]);
-      
-      if (catRes.data) setCategories(catRes.data);
-      if (accRes.data) setAccounts(accRes.data);
-      setDataReady(true);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      setDataReady(true);
-    }
-  };
+    setLastOpenState(isOpen);
+  }, [isOpen, lastOpenState]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    
+    if (!formData.cuenta_id || !formData.categoria_id) {
+      toast.error('Debe seleccionar cuenta y categoría');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -110,15 +99,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
         <DialogHeader>
           <DialogTitle className="text-xl font-bold font-mono uppercase tracking-widest">Nueva Transacción</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4 relative">
-          {!dataReady && (
-            <div className="absolute inset-0 bg-zinc-900/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
-              <div className="text-center text-zinc-500 font-mono text-xs animate-pulse uppercase tracking-widest">
-                Cargando configuraciones...
-              </div>
-            </div>
-          )}
-          
+        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-zinc-400 text-xs uppercase">Tipo</Label>
@@ -151,7 +132,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2" key={`acc-wrapper-${accounts.length}`}>
             <Label className="text-zinc-400 text-xs uppercase">Cuenta</Label>
             <Select 
               value={formData.cuenta_id} 
@@ -168,7 +149,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
             </Select>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2" key={`cat-wrapper-${categories.length}`}>
             <Label className="text-zinc-400 text-xs uppercase">Categoría</Label>
             <Select 
               value={formData.categoria_id} 
@@ -199,7 +180,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
 
           <DialogFooter className="pt-4">
             <Button type="button" variant="ghost" onClick={onClose} className="text-zinc-500">Cancelar</Button>
-            <Button type="submit" disabled={loading || !dataReady} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+            <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white">
               {loading ? 'Guardando...' : 'Registrar'}
             </Button>
           </DialogFooter>
