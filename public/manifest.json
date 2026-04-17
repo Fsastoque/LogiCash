@@ -1,0 +1,17 @@
+{
+  "name": "LogiCash",
+  "short_name": "LogiCash",
+  "description": "Tu bóveda financiera personal con estética tecnológica",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3258/3258446.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
