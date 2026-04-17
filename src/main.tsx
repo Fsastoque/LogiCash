@@ -6,8 +6,7 @@ import './index.css';
 // Force dark mode
 document.documentElement.classList.add('dark');
 
-// Register Service Worker for PWA (Commented out temporarily to debug 404)
-/*
+// Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(err => {
@@ -15,7 +14,6 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
-*/
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
