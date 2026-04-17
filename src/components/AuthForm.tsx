@@ -80,14 +80,14 @@ export const AuthForm: React.FC = () => {
             <div className="space-y-5">
               <div className="space-y-2 group">
                 <Label htmlFor="email" className="text-zinc-500 text-[11px] font-bold uppercase tracking-[0.2em] ml-1 transition-colors group-focus-within:text-indigo-400">
-                  Email Corporativo
+                  Email
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 transition-colors group-focus-within:text-indigo-400" />
                   <Input 
                     id="email" 
                     type="email" 
-                    placeholder="nombre@empresa.com" 
+                    placeholder="tu@email.com" 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
