@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNotify } from '../hooks/useNotify';
+import { Logo } from './Logo';
 import { 
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, 
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger 
@@ -175,13 +176,8 @@ export const Dashboard: React.FC = () => {
       <header className="bg-zinc-950/50 backdrop-blur-md border-b border-zinc-800 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/20">
-                <Zap className="w-5 h-5 fill-current" />
-              </div>
-              <h1 className="text-xl font-bold tracking-tighter text-zinc-100 font-mono hidden sm:block">LogiCash</h1>
-            </div>
-
+            <Logo />
+            
             {/* Desktop Navigation Menu */}
             <nav className="hidden md:flex items-center gap-1">
               <DropdownMenu>

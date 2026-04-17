@@ -192,7 +192,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSuccess
               <Button type="button" variant="outline" onClick={onClose} className="border-zinc-800 h-11 px-6 text-xs uppercase font-bold tracking-widest">
                 Cancelar
               </Button>
-              <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-500 h-11 px-8 text-xs uppercase font-bold tracking-widest">
+              <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-500 text-white h-11 px-8 text-xs uppercase font-bold tracking-widest">
                 {loading ? 'Procesando...' : (goal ? 'Guardar Cambios' : 'Inicializar Meta')}
               </Button>
             </div>

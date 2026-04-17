@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotify } from '../hooks/useNotify';
+import { Logo } from './Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -61,13 +62,7 @@ export const AuthForm: React.FC = () => {
       >
         {/* Brand/Logo Area */}
         <div className="flex flex-col items-center mb-10">
-          <motion.div 
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            className="w-14 h-14 bg-indigo-600 rounded-[22px] flex items-center justify-center shadow-[0_0_40px_rgba(79,70,229,0.3)] mb-6 ring-1 ring-indigo-400/30"
-          >
-            <Zap className="w-8 h-8 text-white fill-current" />
-          </motion.div>
+          <Logo className="mb-6 scale-125" iconOnly />
           <h2 className="text-3xl font-bold tracking-tight text-white font-sans">
             LogiCash
           </h2>
