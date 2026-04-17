@@ -239,6 +239,43 @@ export const Dashboard: React.FC = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             </nav>
+
+            {/* Mobile Menu Trigger */}
+            <div className="md:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger>
+                  <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-zinc-100 h-9 w-9">
+                    <Menu className="w-5 h-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100 w-56" align="start">
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Acciones</DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-zinc-800" />
+                    <DropdownMenuItem onClick={() => setIsAccModalOpen(true)}>
+                      <PlusCircle className="w-4 h-4 mr-2" /> Nueva Cuenta
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsGoalModalOpen(true)}>
+                      <Target className="w-4 h-4 mr-2" /> Nueva Meta de Ahorro
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsCatModalOpen(true)}>
+                      <Settings className="w-4 h-4 mr-2" /> Categorías
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-zinc-800" />
+                    <DropdownMenuItem onClick={() => setShowAnnualSummary(!showAnnualSummary)}>
+                      <BarChart3 className="w-4 h-4 mr-2" /> 
+                      {showAnnualSummary ? 'Ocultar Consolidado' : 'Ver Dashboard Anual'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport('pdf')} className="text-indigo-400">
+                      <FileDown className="w-4 h-4 mr-2" /> Exportar PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleExport('excel')} className="text-emerald-400">
+                      <FileDown className="w-4 h-4 mr-2" /> Exportar Excel
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -251,16 +288,18 @@ export const Dashboard: React.FC = () => {
               }}
               className={`transition-colors h-9 w-9 ${isPrivate ? 'text-indigo-400 bg-indigo-500/10' : 'text-zinc-500 hover:text-zinc-200'}`}
             >
-              {isPrivate ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              {isPrivate ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5 transition-transform" />}
             </Button>
             
             <DropdownMenu>
               <DropdownMenuTrigger>
-                <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center cursor-pointer hover:border-zinc-500 transition-all">
-                  <div className="text-[10px] font-bold text-zinc-400">{user?.email?.charAt(0).toUpperCase()}</div>
+                <div className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center cursor-pointer hover:border-zinc-500 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+                  <div className="text-[10px] font-bold text-zinc-400">
+                    {user?.email?.charAt(0)?.toUpperCase() || 'U'}
+                  </div>
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100 w-56">
+              <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100 w-56" align="end">
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">Mi Perfil</p>
@@ -457,7 +496,7 @@ export const Dashboard: React.FC = () => {
                   <tr className="bg-zinc-950/50 border-b border-zinc-800">
                     <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest">Fecha</th>
                     <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest">Descripción</th>
-                    <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest">Cuenta / Categoría</th>
+                    <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest hidden sm:table-cell">Cuenta / Categoría</th>
                     <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest text-right">Monto</th>
                     <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest text-center">Acciones</th>
                   </tr>
@@ -472,8 +511,11 @@ export const Dashboard: React.FC = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm font-medium text-zinc-200">{tx.descripcion || 'Sin descripción'}</div>
+                        <div className="sm:hidden text-[9px] text-zinc-500 mt-0.5">
+                          {tx.cuenta?.nombre} • {tx.categoria?.nombre || 'General'}
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">
                         <div className="flex flex-col gap-1">
                           <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded border border-zinc-700 w-fit">
                             {tx.cuenta?.nombre}
