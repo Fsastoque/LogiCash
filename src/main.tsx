@@ -6,12 +6,13 @@ import './index.css';
 // Force dark mode
 document.documentElement.classList.add('dark');
 
-// Register Service Worker for PWA
+// Register Service Worker for PWA (Safely unregistering to prevent cache issues in preview)
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(err => {
-      console.log('SW registration failed: ', err);
-    });
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    for (const registration of registrations) {
+      registration.unregister();
+      console.log('SW unregistered');
+    }
   });
 }
 
