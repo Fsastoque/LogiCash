@@ -21,13 +21,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ExportService } from '../lib/ExportService';
 import { SavingsGoals } from './SavingsGoals';
-
-// Lazy load feature components
-const AnnualSummary = lazy(() => import('./AnnualSummary').then(m => ({ default: m.AnnualSummary })));
-const TransactionModal = lazy(() => import('./TransactionModal').then(m => ({ default: m.TransactionModal })));
-const AccountModal = lazy(() => import('./AccountModal').then(m => ({ default: m.AccountModal })));
-const CategoryModal = lazy(() => import('./CategoryModal').then(m => ({ default: m.CategoryModal })));
-const GoalModal = lazy(() => import('./GoalModal').then(m => ({ default: m.GoalModal })));
+import { AnnualSummary } from './AnnualSummary';
+import { TransactionModal } from './TransactionModal';
+import { AccountModal } from './AccountModal';
+import { CategoryModal } from './CategoryModal';
+import { GoalModal } from './GoalModal';
 
 const LoadingFallback = () => (
   <div className="p-12 text-center text-zinc-500 font-mono text-[10px] uppercase tracking-widest animate-pulse">
@@ -253,7 +251,12 @@ export const Dashboard: React.FC = () => {
                   <DropdownMenuGroup>
                     <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Acciones</DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-zinc-800" />
-                    <DropdownMenuItem onClick={() => setIsAccModalOpen(true)}>
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        setSelectedAccount(null);
+                        setIsAccModalOpen(true);
+                      }}
+                    >
                       <PlusCircle className="w-4 h-4 mr-2" /> Nueva Cuenta
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setIsGoalModalOpen(true)}>
@@ -476,9 +479,7 @@ export const Dashboard: React.FC = () => {
               exit={{ opacity: 0, height: 0 }}
               className="overflow-hidden"
             >
-              <Suspense fallback={<LoadingFallback />}>
-                <AnnualSummary />
-              </Suspense>
+              <AnnualSummary />
             </motion.div>
           )}
         </AnimatePresence>
@@ -573,35 +574,33 @@ export const Dashboard: React.FC = () => {
       </main>
 
       {/* Modals */}
-      <Suspense fallback={null}>
-        <TransactionModal 
-          isOpen={isTransModalOpen} 
-          onClose={() => setIsTransModalOpen(false)} 
-          onSuccess={fetchData}
-          accounts={accounts}
-          categories={categories}
-        />
-        <AccountModal 
-          isOpen={isAccModalOpen} 
-          onClose={() => {
-            setIsAccModalOpen(false);
-            setSelectedAccount(null);
-          }} 
-          onSuccess={fetchData}
-          account={selectedAccount}
-        />
-        <CategoryModal
-          isOpen={isCatModalOpen}
-          onClose={() => setIsCatModalOpen(false)}
-          onSuccess={fetchData}
-        />
-        <GoalModal
-          isOpen={isGoalModalOpen}
-          onClose={() => setIsGoalModalOpen(false)}
-          onSuccess={fetchData}
-          goal={selectedGoal}
-        />
-      </Suspense>
+      <TransactionModal 
+        isOpen={isTransModalOpen} 
+        onClose={() => setIsTransModalOpen(false)} 
+        onSuccess={fetchData}
+        accounts={accounts}
+        categories={categories}
+      />
+      <AccountModal 
+        isOpen={isAccModalOpen} 
+        onClose={() => {
+          setIsAccModalOpen(false);
+          setSelectedAccount(null);
+        }} 
+        onSuccess={fetchData}
+        account={selectedAccount}
+      />
+      <CategoryModal
+        isOpen={isCatModalOpen}
+        onClose={() => setIsCatModalOpen(false)}
+        onSuccess={fetchData}
+      />
+      <GoalModal
+        isOpen={isGoalModalOpen}
+        onClose={() => setIsGoalModalOpen(false)}
+        onSuccess={fetchData}
+        goal={selectedGoal}
+      />
     </div>
   );
 };
