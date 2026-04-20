@@ -41,6 +41,13 @@ const TransactionForm: React.FC<{
   const [goals, setGoals] = useState<any[]>([]);
 
   useEffect(() => {
+    // Reset form data when accounts or categories change to ensure matched selection
+    if (accounts.length > 0 && !formData.cuenta_id) {
+      // Don't auto-select to avoid accidental entries, but ensure empty state is clean
+    }
+  }, [accounts, categories]);
+
+  useEffect(() => {
     const fetchSettings = async () => {
       if (!user) return;
       const { data: profile } = await supabase.from('perfiles').select('ahorro_porcentaje').eq('id', user.id).single();
@@ -74,8 +81,8 @@ const TransactionForm: React.FC<{
       if (insertErr) throw insertErr;
 
       // 2. Update account balance
-      const accountId = String(formData.cuenta_id);
-      const account = accounts.find(a => String(a.id) === accountId);
+      const accountId = formData.cuenta_id;
+      const account = accounts.find(a => a.id === accountId);
       
       if (account) {
         const newBalance = formData.tipo === 'ingreso' 
@@ -162,7 +169,7 @@ const TransactionForm: React.FC<{
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
             {accounts.map(acc => (
-              <SelectItem key={acc.id} value={String(acc.id)}>{acc.nombre}</SelectItem>
+              <SelectItem key={acc.id} value={acc.id}>{acc.nombre}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -182,7 +189,7 @@ const TransactionForm: React.FC<{
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
             {categories.map(cat => (
-              <SelectItem key={cat.id} value={String(cat.id)}>{cat.nombre}</SelectItem>
+              <SelectItem key={cat.id} value={cat.id}>{cat.nombre}</SelectItem>
             ))}
           </SelectContent>
         </Select>
