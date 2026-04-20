@@ -169,7 +169,7 @@ const TransactionForm: React.FC<{
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
             {accounts.map(acc => (
-              <SelectItem key={acc.id} value={acc.nombre}</SelectItem>
+              <SelectItem key={acc.id} value={acc.id}>{acc.nombre}</SelectItem>
             ))}
           </SelectContent>
         </Select>
