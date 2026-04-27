@@ -37,6 +37,18 @@ const TransactionForm: React.FC<{
     fecha: new Date().toISOString().split('T')[0]
   });
 
+  const accountOptions = useMemo(() => {
+    return accounts.map(acc => (
+      <SelectItem key={acc.id} value={String(acc.id)} textValue={acc.nombre}>{acc.nombre}</SelectItem>
+    ));
+  }, [accounts]);
+
+  const categoryOptions = useMemo(() => {
+    return categories.map(cat => (
+      <SelectItem key={cat.id} value={String(cat.id)} textValue={cat.nombre}>{cat.nombre}</SelectItem>
+    ));
+  }, [categories]);
+
   const [savingSettings, setSavingSettings] = useState<any>(null);
   const [goals, setGoals] = useState<any[]>([]);
 
@@ -158,7 +170,7 @@ const TransactionForm: React.FC<{
       <div className="space-y-2">
         <Label className="text-zinc-400 text-xs uppercase">Cuenta</Label>
         <Select 
-          value={formData.cuenta_id}
+          value={formData.cuenta_id} 
           onValueChange={(v) => {
             if (v) setFormData(prev => ({...prev, cuenta_id: v}));
           }}
@@ -168,9 +180,7 @@ const TransactionForm: React.FC<{
             <SelectValue placeholder={isDataLoading ? "Cargando..." : "Seleccionar cuenta"} />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-            {accounts.map(acc => (
-              <SelectItem key={acc.id} value={acc.nombre} textValue={acc.nombre}>{acc.nombre}</SelectItem>
-            ))}
+            {accountOptions}
           </SelectContent>
         </Select>
       </div>
@@ -178,7 +188,7 @@ const TransactionForm: React.FC<{
       <div className="space-y-2">
         <Label className="text-zinc-400 text-xs uppercase">Categoría</Label>
         <Select 
-         value={formData.categoria_id} 
+          value={formData.categoria_id} 
           onValueChange={(v) => {
             if (v) setFormData(prev => ({...prev, categoria_id: v}));
           }}
@@ -188,9 +198,7 @@ const TransactionForm: React.FC<{
             <SelectValue placeholder={isDataLoading ? "Cargando..." : "Seleccionar categoría"} />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-            {categories.map(cat => (
-              <SelectItem key={cat.id} value={cat.id} textValue={cat.nombre}>{cat.nombre}</SelectItem>
-            ))}
+            {categoryOptions}
           </SelectContent>
         </Select>
       </div>
