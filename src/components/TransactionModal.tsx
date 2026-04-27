@@ -158,7 +158,7 @@ const TransactionForm: React.FC<{
       <div className="space-y-2">
         <Label className="text-zinc-400 text-xs uppercase">Cuenta</Label>
         <Select 
-          value={formData.cuenta_id || undefined} 
+          value={formData.cuenta_id}
           onValueChange={(v) => {
             if (v) setFormData(prev => ({...prev, cuenta_id: v}));
           }}
@@ -169,7 +169,7 @@ const TransactionForm: React.FC<{
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
             {accounts.map(acc => (
-              <SelectItem key={acc.id} value={acc.id}>{acc.nombre}</SelectItem>
+              <SelectItem key={acc.id} value={acc.id} textValue={acc.nombre}>{acc.nombre}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -178,7 +178,7 @@ const TransactionForm: React.FC<{
       <div className="space-y-2">
         <Label className="text-zinc-400 text-xs uppercase">Categoría</Label>
         <Select 
-          value={formData.categoria_id || undefined} 
+         value={formData.categoria_id} 
           onValueChange={(v) => {
             if (v) setFormData(prev => ({...prev, categoria_id: v}));
           }}
@@ -189,7 +189,7 @@ const TransactionForm: React.FC<{
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
             {categories.map(cat => (
-              <SelectItem key={cat.id} value={cat.id}>{cat.nombre}</SelectItem>
+              <SelectItem key={cat.id} value={cat.id} textValue={cat.nombre}>{cat.nombre}</SelectItem>
             ))}
           </SelectContent>
         </Select>
