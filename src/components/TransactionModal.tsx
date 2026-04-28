@@ -49,9 +49,9 @@ const TransactionForm: React.FC<{
       map[String(acc.id)] = acc;
     });
     return map;
-  }, [accounts]);
+  }, [accounts]);  
   
-  const selectedAccount = accountMap[formData.cuenta_id];
+  const selectedAccount = accountMap[String(formData.cuenta_id)];
 
   const categoryOptions = useMemo(() => {
     return categories.map(cat => (
@@ -190,7 +190,10 @@ const TransactionForm: React.FC<{
             <SelectValue placeholder={isDataLoading ? "Cargando..." : "Seleccionar cuenta"} />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-            {selectedAccount?.nombre || "Ninguna."}
+            Cuenta seleccionada: {
+              accounts.length 
+                ? selectedAccount?.nombre || "Ninguna"
+                : "Cargando..."  }
           </SelectContent>
         </Select>
       </div>
