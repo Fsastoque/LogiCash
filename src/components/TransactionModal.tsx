@@ -39,30 +39,13 @@ const TransactionForm: React.FC<{
 
   const accountOptions = useMemo(() => {
     return accounts.map(acc => (
-      <SelectItem key={acc.id} value={String(acc.id)} textValue={acc.nombre}>{acc.nombre}</SelectItem>
+      <SelectItem key={acc.id} value={String(acc.nombre)}>{acc.nombre}</SelectItem>
     ));
   }, [accounts]);
 
-  const accountMap = useMemo(() => {
-    const map = {};
-    accounts.forEach(acc => {
-      map[String(acc.id)] = acc;
-    });
-    return map;
-  }, [accounts]);  
-  
-  const selectedAccount = accountMap[String(formData.cuenta_id)];
-
-  console.log({
-  cuenta_id: formData.cuenta_id,
-  accountMap,
-  selectedAccount,
-  accountOptions
-});
-
   const categoryOptions = useMemo(() => {
     return categories.map(cat => (
-      <SelectItem key={cat.id} value={String(cat.id)} textValue={cat.nombre}>{cat.nombre}</SelectItem>
+      <SelectItem key={cat.id} value={String(cat.nombre)}>{cat.nombre}</SelectItem>
     ));
   }, [categories]);
 
@@ -189,6 +172,7 @@ const TransactionForm: React.FC<{
         <Select 
           value={formData.cuenta_id} 
           onValueChange={(v) => {
+            console.log("valor seleccionado:", v);
             if (v) setFormData(prev => ({...prev, cuenta_id: v}));
           }}
           disabled={isDataLoading}
@@ -197,10 +181,7 @@ const TransactionForm: React.FC<{
             <SelectValue placeholder={isDataLoading ? "Cargando..." : "Seleccionar cuenta"} />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-            Cuenta seleccionada: {
-              accounts.length 
-                ? selectedAccount?.nombre || "Ninguna"
-                : "Cargando..."  }
+            {accountOptions}
           </SelectContent>
         </Select>
       </div>
