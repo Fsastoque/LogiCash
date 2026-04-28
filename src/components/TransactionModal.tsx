@@ -145,7 +145,7 @@ const TransactionForm: React.FC<{
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label className="text-zinc-400 text-xs uppercase">Tipo</Label>
           <Select 
@@ -170,7 +170,7 @@ const TransactionForm: React.FC<{
             step="0.01"
             required
             placeholder="0.00"
-            className="bg-zinc-950 border-zinc-800"
+            className="bg-zinc-950 border-zinc-800 w-full"
             value={formData.monto}
             onChange={(e) => setFormData(prev => ({...prev, monto: e.target.value}))}
           />
@@ -219,15 +219,26 @@ const TransactionForm: React.FC<{
         <Label className="text-zinc-400 text-xs uppercase">Descripción</Label>
         <Input 
           placeholder="Ej. Compra de supermercado"
-          className="bg-zinc-950 border-zinc-800"
+          className="bg-zinc-950 border-zinc-800 w-full"
           value={formData.descripcion}
           onChange={(e) => setFormData(prev => ({...prev, descripcion: e.target.value}))}
         />
       </div>
 
-      <DialogFooter className="pt-4">
-        <Button type="button" variant="ghost" onClick={onClose} className="text-zinc-500">Cancelar</Button>
-        <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white min-w-[120px]">
+      <DialogFooter className="pt-4 flex flex-col sm:flex-row gap-2">
+        <Button 
+          type="button" 
+          variant="ghost" 
+          onClick={onClose} 
+          className="w-full sm:w-auto text-zinc-500 order-2 sm:order-1"
+        >
+          Cancelar
+        </Button>
+        <Button 
+          type="submit" 
+          disabled={loading} 
+          className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white min-w-[120px] order-1 sm:order-2"
+        >
           {loading ? 'Guardando...' : 'Registrar'}
         </Button>
       </DialogFooter>

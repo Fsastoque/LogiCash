@@ -127,7 +127,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, o
         </div>
 
         <DialogFooter className="pt-4">
-          <Button variant="ghost" onClick={onClose} className="text-zinc-500">Cerrar</Button>
+           <Button variant="ghost" onClick={onClose} className="w-full sm:w-auto text-zinc-500">Cerrar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

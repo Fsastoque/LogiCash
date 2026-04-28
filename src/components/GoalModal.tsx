@@ -126,7 +126,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSuccess
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="progreso" className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Monto Actual</Label>
                 <div className="relative">
@@ -137,7 +137,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSuccess
                     value={monto_actual}
                     onChange={(e) => setMontoActual(e.target.value)}
                     required
-                    className="bg-zinc-950 border-zinc-800 pl-7 text-emerald-400 font-mono"
+                    className="bg-zinc-950 border-zinc-800 pl-7 text-emerald-400 font-mono w-full"
                   />
                 </div>
               </div>
@@ -151,7 +151,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSuccess
                     value={monto_objetivo}
                     onChange={(e) => setMontoObjetivo(e.target.value)}
                     required
-                    className="bg-zinc-950 border-zinc-800 pl-7 font-mono"
+                    className="bg-zinc-950 border-zinc-800 pl-7 font-mono w-full"
                   />
                 </div>
               </div>
@@ -186,17 +186,26 @@ export const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSuccess
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-2">
             {goal && (
               <Button type="button" variant="ghost" onClick={() => setConfirmDeleteOpen(true)} disabled={loading} className="text-rose-500 hover:bg-rose-500/10 h-11 px-4 text-xs uppercase font-bold tracking-widest">
                 Eliminar
               </Button>
             )}
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Button type="button" variant="outline" onClick={onClose} className="border-zinc-800 h-11 px-6 text-xs uppercase font-bold tracking-widest">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:ml-auto order-1 sm:order-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose} 
+                className="w-full sm:w-auto border-zinc-800 h-11 px-6 text-xs uppercase font-bold tracking-widest"
+              >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-500 text-white h-11 px-8 text-xs uppercase font-bold tracking-widest">
+              <Button 
+                type="submit" 
+                disabled={loading} 
+                className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white h-11 px-8 text-xs uppercase font-bold tracking-widest"
+              >
                 {loading ? 'Procesando...' : (goal ? 'Guardar Cambios' : 'Inicializar Meta')}
               </Button>
             </div>

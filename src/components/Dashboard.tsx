@@ -45,7 +45,8 @@ export const Dashboard: React.FC = () => {
   const [stats, setStats] = useState({ ingresos: 0, egresos: 0 });
   const [showAnnualSummary, setShowAnnualSummary] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [isPrivate, setIsPrivate] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(true);
+  const [showTotalCapital, setShowTotalCapital] = useState(false);
   
   // Modal states
   const [isTransModalOpen, setIsTransModalOpen] = useState(false);
@@ -176,6 +177,8 @@ const requestDeleteTransaction = (transaction: any) => {
       error('Error al salir', err);
     }
   };
+
+  const totalBalanceFromAccounts = accounts.reduce((sum, acc) => sum + Number(acc.saldo_actual), 0);
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-indigo-500/30">
@@ -399,6 +402,37 @@ const requestDeleteTransaction = (transaction: any) => {
             </motion.div>
           </div>
         </div>
+
+        {/* Total Capital Card */}
+        <motion.div
+           initial={{ opacity: 0, y: 10 }}
+           animate={{ opacity: 1, y: 0 }}
+           className="mb-8"
+        >
+          <Card className="bg-zinc-900 border-zinc-800 shadow-xl border-l-4 border-l-indigo-600">
+            <CardContent className="p-6 flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Capital Total Acumulado</p>
+                <div className="flex items-center gap-4">
+                  <h3 className="text-3xl font-mono font-bold text-zinc-100 tracking-tighter">
+                    {showTotalCapital ? `$${totalBalanceFromAccounts.toLocaleString('de-DE')}` : '••••••••'}
+                  </h3>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setShowTotalCapital(!showTotalCapital)}
+                    className="h-8 w-8 text-zinc-500 hover:text-zinc-100 transition-colors"
+                  >
+                    {showTotalCapital ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-indigo-500/10 flex items-center justify-center">
+                <Wallet className="w-6 h-6 text-indigo-400" />
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Virtual Credit Cards Section */}
         <section className="space-y-4">

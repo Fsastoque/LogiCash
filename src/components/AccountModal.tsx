@@ -151,22 +151,38 @@ export const AccountModal: React.FC<AccountModalProps> = ({ isOpen, onClose, onS
             />
           </div>
 
-          <DialogFooter className="pt-4 flex flex-col sm:flex-row gap-2">
+          <DialogFooter className="pt-4 flex flex-col sm:flex-row gap-3">
             {account && (
               <Button 
                 type="button" 
                 variant="destructive" 
                 onClick={handleDelete} 
                 disabled={deleteLoading}
-                className="sm:mr-auto"
+                className="w-full sm:w-auto sm:mr-auto order-3 sm:order-1 flex items-center justify-center gap-2"
               >
-                {deleteLoading ? 'Eliminando...' : 'Eliminar'}
+                {deleteLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    <span>Eliminando...</span>
+                  </>
+                ) : 'Eliminar Cuenta'}
               </Button>
             )}
-            <div className="flex gap-2">
-              <Button type="button" variant="ghost" onClick={onClose} className="text-zinc-500">Cancelar</Button>
-              <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white">
-                {loading ? (account ? 'Guardando...' : 'Creando...') : (account ? 'Guardar Cambios' : 'Crear Cuenta')}
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto order-1 sm:order-2">
+              <Button 
+                type="button" 
+                variant="ghost" 
+                onClick={onClose} 
+                className="w-full sm:w-auto text-zinc-500 order-2 sm:order-1"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={loading} 
+                className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white min-w-[120px] order-1 sm:order-2"
+              >
+                {loading ? 'Procesando...' : (account ? 'Guardar Cambios' : 'Crear Cuenta')}
               </Button>
             </div>
           </DialogFooter>
