@@ -53,6 +53,12 @@ const TransactionForm: React.FC<{
   
   const selectedAccount = accountMap[String(formData.cuenta_id)];
 
+  console.log({
+  cuenta_id: formData.cuenta_id,
+  accountMap,
+  selectedAccount
+});
+
   const categoryOptions = useMemo(() => {
     return categories.map(cat => (
       <SelectItem key={cat.id} value={String(cat.id)} textValue={cat.nombre}>{cat.nombre}</SelectItem>
