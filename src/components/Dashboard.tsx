@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   LogOut, Wallet, TrendingUp, TrendingDown, PlusCircle, 
-  CreditCard, ArrowUpRight, ArrowDownRight, Menu, 
+  CreditCard, ArrowUpRight, ArrowDownRight, Menu as MenuIcon,
   ChevronDown, BarChart3, Calendar, Settings, Trash2,
   Eye, EyeOff, FileDown, Target
 } from 'lucide-react';
@@ -245,7 +245,7 @@ export const Dashboard: React.FC = () => {
             <div className="md:hidden">
               <DropdownMenu>
                 <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-zinc-900/50 hover:text-zinc-100 h-9 w-9 text-zinc-400">
-                  <Menu className="w-5 h-5" />
+                  <MenuIcon className="w-5 h-5" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100 w-56" align="start">
                   <DropdownMenuGroup>
@@ -305,13 +305,13 @@ export const Dashboard: React.FC = () => {
                   {user?.email?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100 w-56" align="end">
-                <DropdownMenuLabel className="font-normal">
+              <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100 w-56" align="end">                
+                <div className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">Mi Perfil</p>
                     <p className="text-xs leading-none text-zinc-500">{user?.email}</p>
                   </div>
-                </DropdownMenuLabel>
+                </div>                
                 <DropdownMenuSeparator className="bg-zinc-800" />
                 <DropdownMenuItem className="cursor-not-allowed opacity-50">
                   <Settings className="w-4 h-4 mr-2" /> Ajustes de Ahorro

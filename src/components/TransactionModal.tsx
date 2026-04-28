@@ -39,15 +39,23 @@ const TransactionForm: React.FC<{
 
   const accountOptions = useMemo(() => {
     return accounts.map(acc => (
-      <SelectItem key={acc.id} value={String(acc.nombre)}>{acc.nombre}</SelectItem>
+      <SelectItem key={acc.id} value={acc.id}>{acc.nombre}</SelectItem>
     ));
   }, [accounts]);
 
+  const selectedAccount = accounts.find(
+    acc => String(acc.id) === String(formData.cuenta_id)
+  );
+
   const categoryOptions = useMemo(() => {
     return categories.map(cat => (
-      <SelectItem key={cat.id} value={String(cat.nombre)}>{cat.nombre}</SelectItem>
+      <SelectItem key={cat.id} value={String(cat.id)}>{cat.nombre}</SelectItem>
     ));
   }, [categories]);
+
+  const selectedCategory = categories.find(
+    cat => String(cat.id) === String(formData.categoria_id)
+  );
 
   const [savingSettings, setSavingSettings] = useState<any>(null);
   const [goals, setGoals] = useState<any[]>([]);
@@ -89,6 +97,8 @@ const TransactionForm: React.FC<{
         user_id: user.id,
         monto: montoNum
       }]);
+
+      console.log("data:", insertErr);
 
       if (insertErr) throw insertErr;
 
@@ -178,7 +188,7 @@ const TransactionForm: React.FC<{
           disabled={isDataLoading}
         >
           <SelectTrigger className="bg-zinc-950 border-zinc-800 w-full text-left">
-            <SelectValue placeholder={isDataLoading ? "Cargando..." : "Seleccionar cuenta"} />
+            <SelectValue>  {selectedAccount?.nombre || (isDataLoading ? "Cargando..." : "Seleccionar cuenta")} </SelectValue>
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
             {accountOptions}
@@ -191,12 +201,13 @@ const TransactionForm: React.FC<{
         <Select 
           value={formData.categoria_id} 
           onValueChange={(v) => {
+            console.log("valor seleccionado categoria:", v);
             if (v) setFormData(prev => ({...prev, categoria_id: v}));
           }}
           disabled={isDataLoading}
         >
           <SelectTrigger className="bg-zinc-950 border-zinc-800 w-full text-left">
-            <SelectValue placeholder={isDataLoading ? "Cargando..." : "Seleccionar categoría"} />
+            <SelectValue>  {selectedCategory?.nombre || (isDataLoading ? "Cargando..." : "Seleccionar categoría")} </SelectValue>
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
             {categoryOptions}
