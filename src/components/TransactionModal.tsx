@@ -56,7 +56,8 @@ const TransactionForm: React.FC<{
   console.log({
   cuenta_id: formData.cuenta_id,
   accountMap,
-  selectedAccount
+  selectedAccount,
+  accountOptions
 });
 
   const categoryOptions = useMemo(() => {
