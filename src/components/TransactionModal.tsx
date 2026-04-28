@@ -190,7 +190,7 @@ const TransactionForm: React.FC<{
             <SelectValue placeholder={isDataLoading ? "Cargando..." : "Seleccionar cuenta"} />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-            {selectedAccount?.nombre || "Ninguna"}
+            {selectedAccount?.nombre || "Ninguna."}
           </SelectContent>
         </Select>
       </div>
