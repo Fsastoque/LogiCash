@@ -44,13 +44,13 @@ const TransactionForm: React.FC<{
   }, [accounts]);
 
   const accountMap = useMemo(() => {
-      const map = {};
-      accounts.forEach(acc => {
-        map[String(acc.id)] = acc;
-      });
-  return map;
+    const map = {};
+    accounts.forEach(acc => {
+      map[String(acc.id)] = acc;
+    });
+    return map;
   }, [accounts]);
-
+  
   const selectedAccount = accountMap[formData.cuenta_id];
 
   const categoryOptions = useMemo(() => {
@@ -190,7 +190,7 @@ const TransactionForm: React.FC<{
             <SelectValue placeholder={isDataLoading ? "Cargando..." : "Seleccionar cuenta"} />
           </SelectTrigger>
           <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-            {selectedAccount}
+            {selectedAccount?.nombre || "Ninguna"}
           </SelectContent>
         </Select>
       </div>
