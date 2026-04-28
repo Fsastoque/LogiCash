@@ -26,6 +26,7 @@ import { TransactionModal } from './TransactionModal';
 import { AccountModal } from './AccountModal';
 import { CategoryModal } from './CategoryModal';
 import { GoalModal } from './GoalModal';
+import { ConfirmDialog } from './ConfirmDialog';
 
 const LoadingFallback = () => (
   <div className="p-12 text-center text-zinc-500 font-mono text-[10px] uppercase tracking-widest animate-pulse">
@@ -53,6 +54,8 @@ export const Dashboard: React.FC = () => {
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
   const [selectedGoal, setSelectedGoal] = useState<any>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<any>(null);
 
   const currentMonthName = format(new Date(), 'MMMM', { locale: es });
 
@@ -109,18 +112,23 @@ export const Dashboard: React.FC = () => {
     fetchData();
   }, [user]);
 
-  const handleDeleteTransaction = async (transaction: any) => {
-    if (!window.confirm('¿Estás seguro de eliminar esta transacción? Esta acción revertirá el impacto en el saldo.')) {
-      return;
-    }
+const requestDeleteTransaction = (transaction: any) => {
+    setTransactionToDelete(transaction);
+    setConfirmDeleteOpen(true);
+  };
 
-    setDeletingId(transaction.id);
+  const executeDeleteTransaction = async () => {
+    if (!transactionToDelete) return;
+
+    setDeletingId(transactionToDelete.id);
+    setConfirmDeleteOpen(false);
+  
     try {
       // 1. Revert balance impact
-      const account = accounts.find(a => a.id === transaction.cuenta_id);
+      const account = accounts.find(a => a.id === transactionToDelete.cuenta_id);
       if (account) {
-        const montoNum = Number(transaction.monto);
-        const newBalance = transaction.tipo === 'ingreso'
+        const montoNum = Number(transactionToDelete.monto);
+        const newBalance = transactionToDelete.tipo === 'ingreso'
           ? Number(account.saldo_actual) - montoNum
           : Number(account.saldo_actual) + montoNum;
         
@@ -136,7 +144,7 @@ export const Dashboard: React.FC = () => {
       const { error: delError } = await supabase
         .from('transacciones')
         .delete()
-        .eq('id', transaction.id);
+        .eq('id', transactionToDelete.id);
       
       if (delError) throw delError;
 
@@ -146,6 +154,7 @@ export const Dashboard: React.FC = () => {
       error('Fallo al eliminar', err);
     } finally {
       setDeletingId(null);
+      setTransactionToDelete(null);
     }
   };
 
@@ -539,7 +548,7 @@ export const Dashboard: React.FC = () => {
                           variant="ghost"
                           size="icon"
                           disabled={deletingId === tx.id}
-                          onClick={() => handleDeleteTransaction(tx)}
+                          onClick={() => requestDeleteTransaction(tx)}
                           className="text-zinc-500 hover:text-rose-500 hover:bg-rose-500/10 h-8 w-8 transition-all"
                         >
                           <Trash2 className={`w-4 h-4 ${deletingId === tx.id ? 'animate-pulse' : ''}`} />
@@ -600,6 +609,21 @@ export const Dashboard: React.FC = () => {
         onClose={() => setIsGoalModalOpen(false)}
         onSuccess={fetchData}
         goal={selectedGoal}
+      />
+      {/* Confirmation Dialogs */}
+      <ConfirmDialog
+        isOpen={confirmDeleteOpen}
+        onClose={() => {
+          setConfirmDeleteOpen(false);
+          setTransactionToDelete(null);
+        }}
+        onConfirm={executeDeleteTransaction}
+        title="Eliminar Transacción"
+        description="¿Estás seguro de que deseas eliminar este movimiento? Esta acción revertirá automáticamente el impacto en el saldo de la cuenta asociada."
+        confirmText="Eliminar Movimiento"
+        cancelText="No, Mantener"
+        variant="danger"
+        isLoading={!!deletingId}
       />
     </div>
   );

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Target, Calendar, MinusCircle, PlusCircle } from 'lucide-react';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface GoalModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSuccess
   const [monto_actual, setMontoActual] = useState('');
   const [fecha_limite, setFechaLimite] = useState('');
   const [color, setColor] = useState('#4f46e5');
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (goal) {
@@ -37,6 +39,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSuccess
       setMontoActual('0');
       setFechaLimite('');
       setColor('#4f46e5');
+      setConfirmDeleteOpen(false);
     }
   }, [goal, isOpen]);
 
@@ -79,8 +82,9 @@ export const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSuccess
     }
   };
 
-  const handleDelete = async () => {
-    if (!goal || !window.confirm('¿Eliminar esta meta?')) return;
+  const executeDelete = async () => {
+    if (!goal) return;
+    setConfirmDeleteOpen(false);
     setLoading(true);
     try {
       const { error } = await supabase
@@ -184,7 +188,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSuccess
 
           <DialogFooter className="gap-2 sm:gap-0">
             {goal && (
-              <Button type="button" variant="ghost" onClick={handleDelete} className="text-rose-500 hover:bg-rose-500/10 h-11 px-4 text-xs uppercase font-bold tracking-widest">
+              <Button type="button" variant="ghost" onClick={() => setConfirmDeleteOpen(true)} disabled={loading} className="text-rose-500 hover:bg-rose-500/10 h-11 px-4 text-xs uppercase font-bold tracking-widest">
                 Eliminar
               </Button>
             )}
@@ -199,6 +203,18 @@ export const GoalModal: React.FC<GoalModalProps> = ({ isOpen, onClose, onSuccess
           </DialogFooter>
         </form>
       </DialogContent>
+      {/* Confirmation Dialog for Goal Deletion */}
+<ConfirmDialog
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={executeDelete}
+        title="Eliminar Meta"
+        description="¿Estás seguro de que deseas eliminar esta meta de ahorro? Esta acción no se puede deshacer."
+        confirmText="Sí, Eliminar Meta"
+        cancelText="No, Mantener"
+        variant="danger"
+        isLoading={loading}
+      />
     </Dialog>
   );
 };
