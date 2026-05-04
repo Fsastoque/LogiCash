@@ -1,15 +1,7 @@
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-
-// Extend jsPDF with autotable plugin
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-  }
-}
 
 export const ExportService = {
   exportToPDF: (transactions: any[], stats: any, profile: any) => {
@@ -28,32 +20,44 @@ export const ExportService = {
 
     // Summary Box
     doc.setFillColor(245, 245, 247);
-    doc.rect(14, 40, 182, 30, 'F');
+    doc.rect(14, 40, 182, 35, 'F');
     doc.setTextColor(0);
     doc.setFontSize(12);
     doc.text('RESUMEN DEL PERIODO', 20, 48);
     
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.text(`Saldo Total: $${(profile?.saldo_total || 0).toLocaleString('de-DE')}`, 20, 56);
-    doc.text(`Total Ingresos: $${stats.ingresos.toLocaleString('de-DE')}`, 20, 62);
-    doc.text(`Total Egresos: $${stats.egresos.toLocaleString('de-DE')}`, 100, 62);
+    doc.text(`Ingresos: $${stats.ingresos.toLocaleString('de-DE')}`, 20, 62);
+    doc.text(`Egresos Totales: $${stats.egresos.toLocaleString('de-DE')}`, 20, 68);
+    
+    doc.text(`Gastos Fijos: $${stats.egresosFijos.toLocaleString('de-DE')}`, 100, 62);
+    doc.text(`Gastos Variables: $${stats.egresosVariables.toLocaleString('de-DE')}`, 100, 68);
 
     // Table
-    const tableData = transactions.map(t => [
-      format(new Date(t.fecha), 'dd/MM/yyyy'),
-      t.descripcion || 'Sin descripción',
-      t.cuenta?.nombre || 'N/A',
-      t.categoria?.nombre || 'General',
-      t.tipo.toUpperCase(),
-      `$${Number(t.monto).toLocaleString('de-DE')}`
-    ]);
+    const tableData = transactions.map(t => {
+      let tipoClasificacion = 'N/A';
+      if (t.tipo === 'ingreso') {
+        tipoClasificacion = 'INGRESO';
+      } else {
+        tipoClasificacion = t.categoria?.es_fijo ? 'FIJO' : 'VARIABLE';
+      }
 
-    doc.autoTable({
-      startY: 80,
-      head: [['Fecha', 'Descripción', 'Cuenta', 'Categoría', 'Tipo', 'Monto']],
+      return [
+        format(new Date(t.fecha), 'dd/MM/yyyy'),
+        tipoClasificacion,
+        t.descripcion || 'Sin descripción',
+        t.cuenta?.nombre || 'N/A',
+        t.categoria?.nombre || 'General',
+        `$${Number(t.monto).toLocaleString('de-DE')}`
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 85,
+      head: [['Fecha', 'Tipo', 'Descripción', 'Cuenta', 'Categoría', 'Monto']],
       body: tableData,
       theme: 'grid',
-      headStyles: { fillStyle: [79, 70, 229] },
+      headStyles: { fillColor: [79, 70, 229] },
       styles: { fontSize: 8 },
       columnStyles: {
         5: { halign: 'right' }
@@ -64,14 +68,23 @@ export const ExportService = {
   },
 
   exportToExcel: (transactions: any[]) => {
-    const tableData = transactions.map(t => ({
-      Fecha: format(new Date(t.fecha), 'yyyy-MM-dd'),
-      Descripción: t.descripcion || 'Sin descripción',
-      Cuenta: t.cuenta?.nombre || 'N/A',
-      Categoría: t.categoria?.nombre || 'General',
-      Tipo: t.tipo.toUpperCase(),
-      Monto: Number(t.monto)
-    }));
+    const tableData = transactions.map(t => {
+      let tipoClasificacion = 'N/A';
+      if (t.tipo === 'ingreso') {
+        tipoClasificacion = 'INGRESO';
+      } else {
+        tipoClasificacion = t.categoria?.es_fijo ? 'FIJO' : 'VARIABLE';
+      }
+
+      return {
+        Fecha: format(new Date(t.fecha), 'yyyy-MM-dd'),
+        Tipo: tipoClasificacion,
+        Descripción: t.descripcion || 'Sin descripción',
+        Cuenta: t.cuenta?.nombre || 'N/A',
+        Categoría: t.categoria?.nombre || 'General',
+        Monto: Number(t.monto)
+      };
+    });
 
     const ws = XLSX.utils.json_to_sheet(tableData);
     const wb = XLSX.utils.book_new();
