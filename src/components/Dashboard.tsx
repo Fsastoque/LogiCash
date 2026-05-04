@@ -4,8 +4,8 @@ import { supabase } from '../lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  LogOut, Wallet, TrendingUp, TrendingDown, PlusCircle, 
+import {
+  LogOut, Wallet, TrendingUp, TrendingDown, PlusCircle,
   CreditCard, ArrowUpRight, ArrowDownRight, Menu as MenuIcon,
   ChevronDown, BarChart3, Calendar, Settings, Trash2,
   Eye, EyeOff, FileDown, Target
@@ -15,9 +15,9 @@ import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNotify } from '../hooks/useNotify';
 import { Logo } from './Logo';
-import { 
-  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, 
-  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger 
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { ExportService } from '../lib/ExportService';
 import { SavingsGoals } from './SavingsGoals';
@@ -42,12 +42,15 @@ export const Dashboard: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [metas, setMetas] = useState<any[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
-  const [stats, setStats] = useState({ ingresos: 0, egresos: 0 });
+  const [stats, setStats] = useState({ ingresos: 0, egresos: 0, egresosFijos: 0, egresosVariables: 0 });
+  const [fixedBudgetPercent, setFixedBudgetPercent] = useState(50);
+  const [variableBudgetPercent, setVariableBudgetPercent] = useState(30);
+  const [showBudgetSettings, setShowBudgetSettings] = useState(false);
   const [showAnnualSummary, setShowAnnualSummary] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isPrivate, setIsPrivate] = useState(true);
   const [showTotalCapital, setShowTotalCapital] = useState(false);
-  
+
   // Modal states
   const [isTransModalOpen, setIsTransModalOpen] = useState(false);
   const [isAccModalOpen, setIsAccModalOpen] = useState(false);
@@ -82,13 +85,13 @@ export const Dashboard: React.FC = () => {
       .select(`
         *,
         cuenta:cuentas(nombre),
-        categoria:categorias(nombre)
+        categoria:categorias(nombre, es_fijo)
       `)
       .eq('user_id', user.id)
       .order('fecha', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(10);
-    
+
     if (recentData) setRecentTransactions(recentData);
 
     // Fetch Monthly Stats
@@ -97,15 +100,23 @@ export const Dashboard: React.FC = () => {
 
     const { data: transData } = await supabase
       .from('transacciones')
-      .select('monto, tipo')
+      .select('monto, tipo, categorias(nombre, es_fijo)')
       .eq('user_id', user.id)
       .gte('fecha', start)
       .lte('fecha', end);
-    
+
     if (transData) {
-      const ing = transData.filter(t => t.tipo === 'ingreso').reduce((acc, t) => acc + Number(t.monto), 0);
-      const egr = transData.filter(t => t.tipo === 'egreso').reduce((acc, t) => acc + Number(t.monto), 0);
-      setStats({ ingresos: ing, egresos: egr });
+      const ing = (transData as any[]).filter(t => t.tipo === 'ingreso').reduce((acc, t) => acc + Number(t.monto), 0);
+      const egrFijo = (transData as any[]).filter(t => t.tipo === 'egreso' && t.categorias?.es_fijo === true).reduce((acc, t) => acc + Number(t.monto), 0);
+      const egrVar = (transData as any[]).filter(t => t.tipo === 'egreso' && t.categorias?.es_fijo === false).reduce((acc, t) => acc + Number(t.monto), 0);
+      const egrGral = (transData as any[]).filter(t => t.tipo === 'egreso' && t.categorias?.es_fijo !== true && t.categorias?.es_fijo !== false).reduce((acc, t) => acc + Number(t.monto), 0);
+
+      setStats({ 
+        ingresos: ing, 
+        egresos: egrFijo + egrVar + egrGral,
+        egresosFijos: egrFijo,
+        egresosVariables: egrVar
+      });
     }
   };
 
@@ -113,7 +124,7 @@ export const Dashboard: React.FC = () => {
     fetchData();
   }, [user]);
 
-const requestDeleteTransaction = (transaction: any) => {
+  const requestDeleteTransaction = (transaction: any) => {
     setTransactionToDelete(transaction);
     setConfirmDeleteOpen(true);
   };
@@ -123,7 +134,7 @@ const requestDeleteTransaction = (transaction: any) => {
 
     setDeletingId(transactionToDelete.id);
     setConfirmDeleteOpen(false);
-  
+
     try {
       // 1. Revert balance impact
       const account = accounts.find(a => a.id === transactionToDelete.cuenta_id);
@@ -132,12 +143,12 @@ const requestDeleteTransaction = (transaction: any) => {
         const newBalance = transactionToDelete.tipo === 'ingreso'
           ? Number(account.saldo_actual) - montoNum
           : Number(account.saldo_actual) + montoNum;
-        
+
         const { error: accError } = await supabase
           .from('cuentas')
           .update({ saldo_actual: newBalance })
           .eq('id', account.id);
-        
+
         if (accError) throw accError;
       }
 
@@ -146,7 +157,7 @@ const requestDeleteTransaction = (transaction: any) => {
         .from('transacciones')
         .delete()
         .eq('id', transactionToDelete.id);
-      
+
       if (delError) throw delError;
 
       success('Transacción eliminada', 'El saldo ha sido revertido correctamente.');
@@ -187,7 +198,7 @@ const requestDeleteTransaction = (transaction: any) => {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Logo />
-            
+
             {/* Desktop Navigation Menu */}
             <nav className="hidden md:flex items-center gap-1">
               <DropdownMenu>
@@ -198,25 +209,25 @@ const requestDeleteTransaction = (transaction: any) => {
                   <DropdownMenuGroup>
                     <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Gestión de Activos</DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-zinc-800" />
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => {
                         setSelectedAccount(null);
                         setIsAccModalOpen(true);
-                      }} 
+                      }}
                       className="cursor-pointer"
                     >
                       <PlusCircle className="w-4 h-4 mr-2" /> Nueva Cuenta
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => {
                         setSelectedGoal(null);
                         setIsGoalModalOpen(true);
-                      }} 
+                      }}
                       className="cursor-pointer"
                     >
                       <Target className="w-4 h-4 mr-2" /> Nueva Meta de Ahorro
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => setIsCatModalOpen(true)}
                       className="cursor-pointer"
                     >
@@ -234,11 +245,11 @@ const requestDeleteTransaction = (transaction: any) => {
                   <DropdownMenuGroup>
                     <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Análisis y Exportación</DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-zinc-800" />
-                    <DropdownMenuItem 
-                      onClick={() => setShowAnnualSummary(!showAnnualSummary)} 
+                    <DropdownMenuItem
+                      onClick={() => setShowAnnualSummary(!showAnnualSummary)}
                       className="cursor-pointer"
                     >
-                      <BarChart3 className="w-4 h-4 mr-2" /> 
+                      <BarChart3 className="w-4 h-4 mr-2" />
                       {showAnnualSummary ? 'Ocultar Consolidado' : 'Dashboard Anual'}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-zinc-800" />
@@ -263,7 +274,7 @@ const requestDeleteTransaction = (transaction: any) => {
                   <DropdownMenuGroup>
                     <DropdownMenuLabel className="text-[10px] uppercase tracking-widest text-zinc-500">Acciones</DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-zinc-800" />
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => {
                         setSelectedAccount(null);
                         setIsAccModalOpen(true);
@@ -279,7 +290,7 @@ const requestDeleteTransaction = (transaction: any) => {
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-zinc-800" />
                     <DropdownMenuItem onClick={() => setShowAnnualSummary(!showAnnualSummary)}>
-                      <BarChart3 className="w-4 h-4 mr-2" /> 
+                      <BarChart3 className="w-4 h-4 mr-2" />
                       {showAnnualSummary ? 'Ocultar Consolidado' : 'Ver Dashboard Anual'}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleExport('pdf')} className="text-indigo-400">
@@ -310,20 +321,20 @@ const requestDeleteTransaction = (transaction: any) => {
             >
               {isPrivate ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5 transition-transform" />}
             </Button>
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger className="w-8 h-8 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center cursor-pointer hover:border-zinc-500 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
                 <div className="text-[10px] font-bold text-zinc-400">
                   {user?.email?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100 w-56" align="end">                
+              <DropdownMenuContent className="bg-zinc-900 border-zinc-800 text-zinc-100 w-56" align="end">
                 <div className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">Mi Perfil</p>
                     <p className="text-xs leading-none text-zinc-500">{user?.email}</p>
                   </div>
-                </div>                
+                </div>
                 <DropdownMenuSeparator className="bg-zinc-800" />
                 <DropdownMenuItem className="cursor-not-allowed opacity-50">
                   <Settings className="w-4 h-4 mr-2" /> Ajustes de Ahorro
@@ -341,9 +352,9 @@ const requestDeleteTransaction = (transaction: any) => {
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-10">
         {/* Main Balance & Stats */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} 
-            animate={{ opacity: 1, y: 0 }} 
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             className="lg:col-span-1"
           >
             <Card className="bg-zinc-900 border-zinc-800 shadow-2xl relative overflow-hidden group">
@@ -395,8 +406,162 @@ const requestDeleteTransaction = (transaction: any) => {
                     {isPrivate ? '••••••' : `-$${stats.egresos.toLocaleString('de-DE')}`}
                   </div>
                   <div className="w-full bg-zinc-800 h-1 mt-4 rounded-full overflow-hidden">
-                    <div className="bg-rose-500 h-full w-[40%]" />
+                    <div 
+                      className="bg-rose-500 h-full transition-all duration-500" 
+                      style={{ width: `${Math.min((stats.egresos / (stats.ingresos || 1)) * 100, 100)}%` }} 
+                    />
                   </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+        </div>
+
+         {/* Expense Types & Budget Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" strokeWidth={1.5} />
+              Presupuesto Mensual
+              {((stats.egresosFijos > (stats.ingresos * fixedBudgetPercent / 100)) || (stats.egresosVariables > (stats.ingresos * variableBudgetPercent / 100))) && (
+                <Badge className="bg-rose-500 text-white border-none animate-pulse text-[9px] px-2 py-0">ALERTA DE TOPE</Badge>
+              )}
+            </h2>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowBudgetSettings(!showBudgetSettings)}
+              className="text-[10px] uppercase font-bold tracking-tighter text-zinc-500 hover:text-indigo-400"
+            >
+              <Settings className="w-3 h-3 mr-1" /> {showBudgetSettings ? 'Cerrar Ajustes' : 'Ajustar Límites'}
+            </Button>
+          </div>
+
+          <AnimatePresence>
+            {showBudgetSettings && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 gap-6 grid grid-cols-1 sm:grid-cols-2 overflow-hidden"
+              >
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[10px] uppercase font-bold text-zinc-400">
+                    <span>Tope Gastos Fijos</span>
+                    <span className="text-indigo-400">{fixedBudgetPercent}%</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="1" 
+                    max="100" 
+                    value={fixedBudgetPercent} 
+                    onChange={(e) => setFixedBudgetPercent(parseInt(e.target.value))}
+                    className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-[10px] uppercase font-bold text-zinc-400">
+                    <span>Tope Gastos Variables</span>
+                    <span className="text-indigo-400">{variableBudgetPercent}%</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="1" 
+                    max="100" 
+                    value={variableBudgetPercent} 
+                    onChange={(e) => setVariableBudgetPercent(parseInt(e.target.value))}
+                    className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Fixed Expenses Card */}
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
+              <Card className={`bg-zinc-900 border-zinc-800 shadow-xl overflow-hidden relative group ${stats.egresosFijos > (stats.ingresos * fixedBudgetPercent / 100) ? 'border-l-4 border-l-rose-500' : 'border-l-4 border-l-indigo-500'}`}>
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="space-y-1">
+                      <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Gastos Fijos</p>
+                      <h3 className={`text-2xl font-mono font-bold ${stats.egresosFijos > (stats.ingresos * fixedBudgetPercent / 100) ? 'text-rose-400' : 'text-zinc-100'}`}>
+                        {isPrivate ? '••••••' : `$${stats.egresosFijos.toLocaleString('de-DE')}`}
+                      </h3>
+                    </div>
+                    <div className="text-[10px] font-bold text-zinc-500 text-right">
+                      TOPE: {fixedBudgetPercent}% <br/>
+                      <span className="text-[9px] font-mono">
+                        ${((stats.ingresos * fixedBudgetPercent) / 100).toLocaleString('de-DE')}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-end">
+                      <span className="text-[9px] uppercase font-bold text-zinc-500">Ejecución</span>
+                      <span className={`text-[10px] font-bold ${stats.egresosFijos > (stats.ingresos * fixedBudgetPercent / 100) ? 'text-rose-500' : 'text-indigo-400'}`}>
+                        {Math.round((stats.egresosFijos / (Math.max(stats.ingresos * fixedBudgetPercent / 100, 1) || 1)) * 100)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-zinc-950 h-1.5 rounded-full overflow-hidden p-[1px]">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-700 ${stats.egresosFijos > (stats.ingresos * fixedBudgetPercent / 100) ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' : 'bg-indigo-500'}`}
+                        style={{ width: `${Math.min((stats.egresosFijos / (Math.max(stats.ingresos * fixedBudgetPercent / 100, 1) || 1)) * 100, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {stats.egresosFijos > (stats.ingresos * fixedBudgetPercent / 100) && (
+                    <div className="mt-3 flex items-center gap-1.5 text-rose-500">
+                      <PlusCircle className="w-3 h-3 rotate-45" />
+                      <span className="text-[9px] font-bold uppercase tracking-tight">Presupuesto Fijo Excedido</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Variable Expenses Card */}
+            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}>
+              <Card className={`bg-zinc-900 border-zinc-800 shadow-xl overflow-hidden relative group ${stats.egresosVariables > (stats.ingresos * variableBudgetPercent / 100) ? 'border-l-4 border-l-rose-500' : 'border-l-4 border-l-emerald-500'}`}>
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="space-y-1">
+                      <p className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Gastos Variables</p>
+                      <h3 className={`text-2xl font-mono font-bold ${stats.egresosVariables > (stats.ingresos * variableBudgetPercent / 100) ? 'text-rose-400' : 'text-zinc-100'}`}>
+                        {isPrivate ? '••••••' : `$${stats.egresosVariables.toLocaleString('de-DE')}`}
+                      </h3>
+                    </div>
+                    <div className="text-[10px] font-bold text-zinc-500 text-right">
+                      TOPE: {variableBudgetPercent}% <br/>
+                      <span className="text-[9px] font-mono">
+                        ${((stats.ingresos * variableBudgetPercent) / 100).toLocaleString('de-DE')}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-end">
+                      <span className="text-[9px] uppercase font-bold text-zinc-500">Ejecución</span>
+                      <span className={`text-[10px] font-bold ${stats.egresosVariables > (stats.ingresos * variableBudgetPercent / 100) ? 'text-rose-500' : 'text-emerald-400'}`}>
+                        {Math.round((stats.egresosVariables / (Math.max(stats.ingresos * variableBudgetPercent / 100, 1) || 1)) * 100)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-zinc-950 h-1.5 rounded-full overflow-hidden p-[1px]">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-700 ${stats.egresosVariables > (stats.ingresos * variableBudgetPercent / 100) ? 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]' : 'bg-emerald-500'}`}
+                        style={{ width: `${Math.min((stats.egresosVariables / (Math.max(stats.ingresos * variableBudgetPercent / 100, 1) || 1)) * 100, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {stats.egresosVariables > (stats.ingresos * variableBudgetPercent / 100) && (
+                    <div className="mt-3 flex items-center gap-1.5 text-rose-500">
+                      <PlusCircle className="w-3 h-3 rotate-45" />
+                      <span className="text-[9px] font-bold uppercase tracking-tight">Presupuesto Variable Excedido</span>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -405,9 +570,9 @@ const requestDeleteTransaction = (transaction: any) => {
 
         {/* Total Capital Card */}
         <motion.div
-           initial={{ opacity: 0, y: 10 }}
-           animate={{ opacity: 1, y: 0 }}
-           className="mb-8"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
         >
           <Card className="bg-zinc-900 border-zinc-800 shadow-xl border-l-4 border-l-indigo-600">
             <CardContent className="p-6 flex items-center justify-between">
@@ -417,9 +582,9 @@ const requestDeleteTransaction = (transaction: any) => {
                   <h3 className="text-3xl font-mono font-bold text-zinc-100 tracking-tighter">
                     {showTotalCapital ? `$${totalBalanceFromAccounts.toLocaleString('de-DE')}` : '••••••••'}
                   </h3>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setShowTotalCapital(!showTotalCapital)}
                     className="h-8 w-8 text-zinc-500 hover:text-zinc-100 transition-colors"
                   >
@@ -444,14 +609,14 @@ const requestDeleteTransaction = (transaction: any) => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {accounts.map((acc, i) => (
-              <motion.div 
+              <motion.div
                 key={acc.id}
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.1 }}
                 whileHover={{ y: -5 }}
               >
-                <Card 
+                <Card
                   onClick={() => {
                     setSelectedAccount(acc);
                     setIsAccModalOpen(true);
@@ -482,8 +647,8 @@ const requestDeleteTransaction = (transaction: any) => {
               </motion.div>
             ))}
             {accounts.length === 0 && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => {
                   setSelectedAccount(null);
                   setIsAccModalOpen(true);
@@ -500,8 +665,8 @@ const requestDeleteTransaction = (transaction: any) => {
         </section>
 
         {/* Savings Goals Section */}
-        <SavingsGoals 
-          goals={metas} 
+        <SavingsGoals
+          goals={metas}
           onAddGoal={() => {
             setSelectedGoal(null);
             setIsGoalModalOpen(true);
@@ -516,9 +681,9 @@ const requestDeleteTransaction = (transaction: any) => {
         {/* Annual Summary Section (Conditional) */}
         <AnimatePresence>
           {showAnnualSummary && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }} 
-              animate={{ opacity: 1, height: 'auto' }} 
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               className="overflow-hidden"
             >
@@ -535,16 +700,17 @@ const requestDeleteTransaction = (transaction: any) => {
               Últimos Movimientos
             </h2>
           </div>
-          
+
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-xl">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-zinc-950/50 border-b border-zinc-800">
                     <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest">Fecha</th>
-                    <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest">Descripción</th>
-                    <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest hidden sm:table-cell">Cuenta / Categoría</th>
+                    <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest">Tipo</th>
+                    <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest">Categoría</th>
                     <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest text-right">Monto</th>
+                    <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest hidden sm:table-cell">Cuenta</th>                  
                     <th className="px-6 py-4 text-[10px] uppercase font-bold text-zinc-500 tracking-widest text-center">Acciones</th>
                   </tr>
                 </thead>
@@ -556,27 +722,36 @@ const requestDeleteTransaction = (transaction: any) => {
                           {format(parseISO(tx.fecha), 'dd MMM', { locale: es })}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-zinc-200">{tx.descripcion || 'Sin descripción'}</div>
-                        <div className="sm:hidden text-[9px] text-zinc-500 mt-0.5">
-                          {tx.cuenta?.nombre} • {tx.categoria?.nombre || 'General'}
-                        </div>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {tx.tipo === 'ingreso' ? (
+                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px] uppercase font-bold py-0 h-4 min-h-0">Ingreso</Badge>
+                        ) : (
+                          <Badge variant="outline" className={tx.categoria?.es_fijo ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 text-[9px] uppercase font-bold py-0 h-4 min-h-0" : "bg-amber-500/10 text-amber-400 border-amber-500/20 text-[9px] uppercase font-bold py-0 h-4 min-h-0"}>
+                            {tx.categoria?.es_fijo ? 'Fijo' : 'Variable'}
+                          </Badge>
+                        )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded border border-zinc-700 w-fit">
-                            {tx.cuenta?.nombre}
-                          </span>
-                          <span className="text-[10px] text-zinc-500 italic">
-                            {tx.categoria?.nombre || 'General'}
-                          </span>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-medium text-zinc-200">
+                          {tx.categoria?.nombre || 'General'}
+                        </div>
+                        <div className="text-[10px] text-zinc-500 mt-0.5 line-clamp-1">
+                          {tx.descripcion || 'Sin descripción'}
+                        </div>
+                        <div className="sm:hidden text-[9px] text-indigo-400 mt-1">
+                          {tx.cuenta?.nombre}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <span className={`text-sm font-bold font-mono ${tx.tipo === 'ingreso' ? 'text-emerald-400' : 'text-rose-500'}`}>
                           {tx.tipo === 'ingreso' ? '+' : '-'}${Number(tx.monto).toLocaleString('de-DE')}
                         </span>
-                      </td>
+                      </td>                      
+                      <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell text-center">
+                        <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded border border-zinc-700">
+                          {tx.cuenta?.nombre}
+                        </span>
+                      </td>                      
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <Button
                           variant="ghost"
@@ -605,8 +780,8 @@ const requestDeleteTransaction = (transaction: any) => {
 
         {/* Floating Action Button */}
         <div className="fixed bottom-8 right-8 z-30">
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             onClick={() => setIsTransModalOpen(true)}
             className="rounded-full shadow-2xl shadow-indigo-500/40 bg-indigo-600 hover:bg-indigo-700 px-6 h-14 transition-all hover:scale-105 active:scale-95 text-white font-bold border-none"
           >
@@ -617,19 +792,19 @@ const requestDeleteTransaction = (transaction: any) => {
       </main>
 
       {/* Modals */}
-      <TransactionModal 
-        isOpen={isTransModalOpen} 
-        onClose={() => setIsTransModalOpen(false)} 
+      <TransactionModal
+        isOpen={isTransModalOpen}
+        onClose={() => setIsTransModalOpen(false)}
         onSuccess={fetchData}
         accounts={accounts}
         categories={categories}
       />
-      <AccountModal 
-        isOpen={isAccModalOpen} 
+      <AccountModal
+        isOpen={isAccModalOpen}
         onClose={() => {
           setIsAccModalOpen(false);
           setSelectedAccount(null);
-        }} 
+        }}
         onSuccess={fetchData}
         account={selectedAccount}
       />

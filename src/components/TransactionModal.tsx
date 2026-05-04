@@ -31,7 +31,7 @@ const TransactionForm: React.FC<{
   const [formData, setFormData] = useState({
     monto: '',
     descripcion: '',
-    tipo: 'egreso',
+    tipo: 'egreso_variable',
     categoria_id: '',
     cuenta_id: '',
     fecha: new Date().toISOString().split('T')[0]
@@ -47,11 +47,33 @@ const TransactionForm: React.FC<{
     acc => String(acc.id) === String(formData.cuenta_id)
   );
 
+  useEffect(() => {
+    // Reset category selection when changing type to avoid cross-type mismatch
+    setFormData(prev => ({ ...prev, categoria_id: '' }));
+  }, [formData.tipo]);
+
+
   const categoryOptions = useMemo(() => {
+    return categories
+      .filter(cat => {        
+        if (formData.tipo === 'egreso_fijo') {
+          return cat.es_fijo === true;
+        }
+        if (formData.tipo === 'egreso_variable') {
+          return cat.es_fijo === false || cat.es_fijo === null || cat.es_fijo === undefined;
+        }
+        return true;  
+      })
+      .map(cat => (
+        <SelectItem key={cat.id} value={String(cat.id)}>{cat.nombre}</SelectItem>
+      ));
+  }, [categories, formData.tipo]);
+
+  /*const categoryOptions = useMemo(() => {
     return categories.map(cat => (
       <SelectItem key={cat.id} value={String(cat.id)}>{cat.nombre}</SelectItem>
     ));
-  }, [categories]);
+  }, [categories]);*/
 
   const selectedCategory = categories.find(
     cat => String(cat.id) === String(formData.categoria_id)
@@ -60,12 +82,12 @@ const TransactionForm: React.FC<{
   const [savingSettings, setSavingSettings] = useState<any>(null);
   const [goals, setGoals] = useState<any[]>([]);
 
-  useEffect(() => {
+  /*useEffect(() => {
     // Reset form data when accounts or categories change to ensure matched selection
     if (accounts.length > 0 && !formData.cuenta_id) {
       // Don't auto-select to avoid accidental entries, but ensure empty state is clean
     }
-  }, [accounts, categories]);
+  }, [accounts, categories]);*/
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -90,12 +112,20 @@ const TransactionForm: React.FC<{
     setLoading(true);
     try {
       const montoNum = parseFloat(formData.monto);
+
+      const dbTipo = (formData.tipo === 'egreso_fijo' || formData.tipo === 'egreso_variable' || formData.tipo === 'egreso') 
+        ? 'egreso' 
+        : 'ingreso';
       
       // 1. Insert transaction
       const { error: insertErr } = await supabase.from('transacciones').insert([{
-        ...formData,
-        user_id: user.id,
-        monto: montoNum
+        monto: montoNum,
+        descripcion: formData.descripcion,
+        tipo: dbTipo,
+        categoria_id: formData.categoria_id,
+        cuenta_id: formData.cuenta_id,
+        fecha: formData.fecha,
+        user_id: user.id
       }]);
 
       console.log("data:", insertErr);
@@ -107,7 +137,8 @@ const TransactionForm: React.FC<{
       const account = accounts.find(a => a.id === accountId);
       
       if (account) {
-        const newBalance = formData.tipo === 'ingreso' 
+        const isIncome = dbTipo === 'ingreso';
+        const newBalance = isIncome 
           ? Number(account.saldo_actual) + montoNum
           : Number(account.saldo_actual) - montoNum;
         
@@ -158,8 +189,10 @@ const TransactionForm: React.FC<{
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
-              <SelectItem value="egreso">Egreso</SelectItem>
+              <SelectItem value="egreso_fijo">Egreso Fijo</SelectItem>
+              <SelectItem value="egreso_variable">Egreso Variable</SelectItem>
               <SelectItem value="ingreso">Ingreso</SelectItem>
+              <SelectItem value="egreso">Egreso (Gral)</SelectItem>
             </SelectContent>
           </Select>
         </div>
