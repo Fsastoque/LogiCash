@@ -34,6 +34,7 @@ const TransactionForm: React.FC<{
     tipo: 'egreso_variable',
     categoria_id: '',
     cuenta_id: '',
+    cuenta_destino_id: '',
     fecha: new Date().toISOString().split('T')[0]
   });
 
@@ -43,13 +44,25 @@ const TransactionForm: React.FC<{
     ));
   }, [accounts]);
 
+  const destinationAccountOptions = useMemo(() => {
+    return accounts
+      .filter(acc => String(acc.id) !== formData.cuenta_id)
+      .map(acc => (
+        <SelectItem key={acc.id} value={String(acc.id)}>{acc.nombre}</SelectItem>
+      ));
+  }, [accounts, formData.cuenta_id]);
+
   const selectedAccount = accounts.find(
     acc => String(acc.id) === String(formData.cuenta_id)
   );
 
   useEffect(() => {
     // Reset category selection when changing type to avoid cross-type mismatch
-    setFormData(prev => ({ ...prev, categoria_id: '' }));
+    setFormData(prev => ({ 
+      ...prev, 
+      categoria_id: '',
+      cuenta_destino_id: prev.tipo === 'traslado' ? prev.cuenta_destino_id : ''
+    }));
   }, [formData.tipo]);
 
 
@@ -103,15 +116,94 @@ const TransactionForm: React.FC<{
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    
-    if (!formData.cuenta_id || !formData.categoria_id) {
-      warning('Datos incompletos', 'Por favor seleccione cuenta y categoría');
-      return;
+
+    if (formData.tipo === 'traslado') {
+      if (!formData.cuenta_id || !formData.cuenta_destino_id) {
+        warning('Datos incompletos', 'Por favor seleccione cuenta de origen y de destino');
+        return;
+      }
+      if (formData.cuenta_id === formData.cuenta_destino_id) {
+        warning('Cuentas idénticas', 'La cuenta de origen y destino deben ser diferentes');
+        return;
+      }
+    } else {    
+      if (!formData.cuenta_id || !formData.categoria_id) {
+        warning('Datos incompletos', 'Por favor seleccione cuenta y categoría');
+        return;
+      }
     }
 
     setLoading(true);
     try {
       const montoNum = parseFloat(formData.monto);
+
+      if (formData.tipo === 'traslado') {
+        // Find or create "Traslado de Fondos" category
+        let trasladoCatId = '';
+        const existingCat = categories.find(c => c.nombre === 'Traslado de Fondos');
+        if (existingCat) {
+          trasladoCatId = existingCat.id;
+        } else {
+          const { data: newCat, error: catError } = await supabase
+            .from('categorias')
+            .insert([{ nombre: 'Traslado de Fondos', user_id: user.id, es_fijo: null }])
+            .select()
+            .single();
+          if (catError) throw catError;
+          trasladoCatId = newCat.id;
+        }
+
+        const accountOrigen = accounts.find(a => String(a.id) === formData.cuenta_id);
+        const accountDestino = accounts.find(a => String(a.id) === formData.cuenta_destino_id);
+
+        if (!accountOrigen || !accountDestino) {
+          throw new Error('No se encontraron las cuentas seleccionadas');
+        }
+
+        const descBase = formData.descripcion ? ` - ${formData.descripcion}` : '';
+
+        // 1. Insert Egreso Transaction (Origin)
+        const { error: insertEgresoErr } = await supabase.from('transacciones').insert([{
+          monto: montoNum,
+          descripcion: `Traslado a ${accountDestino.nombre}${descBase}`,
+          tipo: 'egreso',
+          categoria_id: trasladoCatId,
+          cuenta_id: accountOrigen.id,
+          fecha: formData.fecha,
+          user_id: user.id
+        }]);
+        if (insertEgresoErr) throw insertEgresoErr;
+
+        // 2. Insert Ingreso Transaction (Destination)
+        const { error: insertIngresoErr } = await supabase.from('transacciones').insert([{
+          monto: montoNum,
+          descripcion: `Traslado desde ${accountOrigen.nombre}${descBase}`,
+          tipo: 'ingreso',
+          categoria_id: trasladoCatId,
+          cuenta_id: accountDestino.id,
+          fecha: formData.fecha,
+          user_id: user.id
+        }]);
+        if (insertIngresoErr) throw insertIngresoErr;
+
+        // 3. Update Account Balances
+        const newBalanceOrigen = Number(accountOrigen.saldo_actual) - montoNum;
+        const newBalanceDestino = Number(accountDestino.saldo_actual) + montoNum;
+
+        const { error: updateOrigenErr } = await supabase
+          .from('cuentas')
+          .update({ saldo_actual: newBalanceOrigen })
+          .eq('id', accountOrigen.id);
+        if (updateOrigenErr) throw updateOrigenErr;
+
+        const { error: updateDestinoErr } = await supabase
+          .from('cuentas')
+          .update({ saldo_actual: newBalanceDestino })
+          .eq('id', accountDestino.id);
+        if (updateDestinoErr) throw updateDestinoErr;
+
+        success('Traslado Completado', 'El movimiento de fondos se ha procesado con éxito.');
+      } else {
 
       const dbTipo = (formData.tipo === 'egreso_fijo' || formData.tipo === 'egreso_variable' || formData.tipo === 'egreso') 
         ? 'egreso' 
@@ -163,6 +255,7 @@ const TransactionForm: React.FC<{
       }
 
       success('Gasto Registrado', 'La transacción se ha procesado con éxito.');
+    }
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -193,6 +286,7 @@ const TransactionForm: React.FC<{
               <SelectItem value="egreso_variable">Egreso Variable</SelectItem>
               <SelectItem value="ingreso">Ingreso</SelectItem>
               <SelectItem value="egreso">Egreso (Gral)</SelectItem>
+              <SelectItem value="traslado">Traslado entre Cuentas</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -209,7 +303,45 @@ const TransactionForm: React.FC<{
           />
         </div>
       </div>
-
+      {formData.tipo === 'traslado' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-zinc-400 text-xs uppercase">Cuenta Origen</Label>
+            <Select 
+              value={formData.cuenta_id} 
+              onValueChange={(v) => {
+                if (v) setFormData(prev => ({...prev, cuenta_id: v}));
+              }}
+              disabled={isDataLoading}
+            >
+              <SelectTrigger className="bg-zinc-950 border-zinc-800 w-full text-left">
+                <SelectValue placeholder={isDataLoading ? "Cargando..." : "Seleccionar origen"} />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                {accountOptions}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-zinc-400 text-xs uppercase">Cuenta Destino</Label>
+            <Select 
+              value={formData.cuenta_destino_id} 
+              onValueChange={(v) => {
+                if (v) setFormData(prev => ({...prev, cuenta_destino_id: v}));
+              }}
+              disabled={isDataLoading || !formData.cuenta_id}
+            >
+              <SelectTrigger className="bg-zinc-950 border-zinc-800 w-full text-left">
+                <SelectValue placeholder={isDataLoading ? "Cargando..." : !formData.cuenta_id ? "Primero selecciona origen" : "Seleccionar destino"} />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                {destinationAccountOptions}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      ) : (
+        <>
       <div className="space-y-2">
         <Label className="text-zinc-400 text-xs uppercase">Cuenta</Label>
         <Select 
@@ -247,11 +379,13 @@ const TransactionForm: React.FC<{
           </SelectContent>
         </Select>
       </div>
+      </>
+      )}
 
       <div className="space-y-2">
         <Label className="text-zinc-400 text-xs uppercase">Descripción</Label>
         <Input 
-          placeholder="Ej. Compra de supermercado"
+          placeholder={formData.tipo === 'traslado' ? "Ej. Retiro de cajero" : "Ej. Compra de supermercado"}
           className="bg-zinc-950 border-zinc-800 w-full"
           value={formData.descripcion}
           onChange={(e) => setFormData(prev => ({...prev, descripcion: e.target.value}))}

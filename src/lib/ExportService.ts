@@ -36,7 +36,9 @@ export const ExportService = {
     // Table
     const tableData = transactions.map(t => {
       let tipoClasificacion = 'N/A';
-      if (t.tipo === 'ingreso') {
+      if (t.categoria?.nombre === 'Traslado de Fondos') {
+        tipoClasificacion = 'TRASLADO';
+      } else if (t.tipo === 'ingreso') {
         tipoClasificacion = 'INGRESO';
       } else {
         tipoClasificacion = t.categoria?.es_fijo ? 'FIJO' : 'VARIABLE';
@@ -70,7 +72,9 @@ export const ExportService = {
   exportToExcel: (transactions: any[]) => {
     const tableData = transactions.map(t => {
       let tipoClasificacion = 'N/A';
-      if (t.tipo === 'ingreso') {
+      if (t.categoria?.nombre === 'Traslado de Fondos') {
+        tipoClasificacion = 'TRASLADO';
+      } else if (t.tipo === 'ingreso') {
         tipoClasificacion = 'INGRESO';
       } else {
         tipoClasificacion = t.categoria?.es_fijo ? 'FIJO' : 'VARIABLE';

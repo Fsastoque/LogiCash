@@ -106,10 +106,12 @@ export const Dashboard: React.FC = () => {
       .lte('fecha', end);
 
     if (transData) {
-      const ing = (transData as any[]).filter(t => t.tipo === 'ingreso').reduce((acc, t) => acc + Number(t.monto), 0);
-      const egrFijo = (transData as any[]).filter(t => t.tipo === 'egreso' && t.categorias?.es_fijo === true).reduce((acc, t) => acc + Number(t.monto), 0);
-      const egrVar = (transData as any[]).filter(t => t.tipo === 'egreso' && t.categorias?.es_fijo === false).reduce((acc, t) => acc + Number(t.monto), 0);
-      const egrGral = (transData as any[]).filter(t => t.tipo === 'egreso' && t.categorias?.es_fijo !== true && t.categorias?.es_fijo !== false).reduce((acc, t) => acc + Number(t.monto), 0);
+      // Exclude transfers from monthly incomes/expenses calculations
+      const filteredTrans = (transData as any[]).filter(t => t.categorias?.nombre !== 'Traslado de Fondos');
+      const ing = filteredTrans.filter(t => t.tipo === 'ingreso').reduce((acc, t) => acc + Number(t.monto), 0);
+      const egrFijo = filteredTrans.filter(t => t.tipo === 'egreso' && t.categorias?.es_fijo === true).reduce((acc, t) => acc + Number(t.monto), 0);
+      const egrVar = filteredTrans.filter(t => t.tipo === 'egreso' && t.categorias?.es_fijo === false).reduce((acc, t) => acc + Number(t.monto), 0);
+      const egrGral = filteredTrans.filter(t => t.tipo === 'egreso' && t.categorias?.es_fijo !== true && t.categorias?.es_fijo !== false).reduce((acc, t) => acc + Number(t.monto), 0);
 
       setStats({ 
         ingresos: ing, 
@@ -723,7 +725,9 @@ export const Dashboard: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {tx.tipo === 'ingreso' ? (
+                        {tx.categoria?.nombre === 'Traslado de Fondos' ? (
+                          <Badge variant="outline" className="bg-sky-500/10 text-sky-400 border-sky-500/20 text-[9px] uppercase font-bold py-0 h-4 min-h-0">Traslado</Badge>
+                        ) : tx.tipo === 'ingreso' ? (
                           <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px] uppercase font-bold py-0 h-4 min-h-0">Ingreso</Badge>
                         ) : (
                           <Badge variant="outline" className={tx.categoria?.es_fijo ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 text-[9px] uppercase font-bold py-0 h-4 min-h-0" : "bg-amber-500/10 text-amber-400 border-amber-500/20 text-[9px] uppercase font-bold py-0 h-4 min-h-0"}>

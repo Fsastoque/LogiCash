@@ -18,12 +18,36 @@ export const useNotify = () => {
     let message = title;
     let desc = errorObj?.message || '';
 
-    // Supabase error cleaning
+    // Supabase or application error cleaning
     if (errorObj?.code) {
-      if (errorObj.code === '23505') desc = 'Este registro ya existe en el sistema.';
-      else if (errorObj.code === '42P01') desc = 'Error de conexión con la tabla de datos.';
-      else if (errorObj.message?.includes('JWT')) desc = 'Tu sesión ha expirado. Por favor, ingresa de nuevo.';
-      else desc = 'Ocurrió un problema técnico con la base de datos.';
+      if (errorObj.code === '23505') {
+        desc = 'Este registro ya existe en el sistema.';
+      } else if (errorObj.code === '42P01') {
+        desc = 'Error de conexión con la tabla de datos.';
+      } else if (
+        errorObj.code === 'invalid_credentials' ||
+        errorObj.message?.toLowerCase().includes('credentials') ||
+        errorObj.message?.toLowerCase().includes('credenciales') ||
+        errorObj.message?.toLowerCase().includes('invalid grant')
+      ) {
+        desc = 'Credenciales incorrectas. Por favor, verifica tu correo y contraseña.';
+      } else if (errorObj.message?.includes('JWT')) {
+        desc = 'Tu sesión ha expirado. Por favor, ingresa de nuevo.';
+      } else {
+        // If it looks like a standard postgresql database code (e.g., numeric code)
+        const isPgCode = /^[a-zA-Z0-9]{5}$/.test(String(errorObj.code)) && !isNaN(Number(errorObj.code[0]));
+        if (isPgCode) {
+          desc = 'Ocurrió un problema técnico con la base de datos.';
+        } else {
+          desc = errorObj.message || 'Ocurrió un problema.';
+        }
+      }
+    } else if (
+      errorObj?.message?.toLowerCase().includes('credentials') ||
+      errorObj?.message?.toLowerCase().includes('credenciales') ||
+      errorObj?.message?.toLowerCase().includes('invalid grant')
+    ) {
+      desc = 'Credenciales incorrectas. Por favor, verifica tu correo y contraseña.';
     }
 
     toast.error(message, {

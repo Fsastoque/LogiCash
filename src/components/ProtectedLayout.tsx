@@ -4,9 +4,10 @@ import { Logo } from './Logo';
 import { motion } from 'motion/react';
 
 const AuthForm = lazy(() => import('./AuthForm').then(m => ({ default: m.AuthForm })));
+const UpdatePasswordForm = lazy(() => import('./UpdatePasswordForm').then(m => ({ default: m.UpdatePasswordForm })));
 
 export const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, isRecovering } = useAuth();
 
   if (loading) {
     return (
@@ -25,6 +26,20 @@ export const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({ child
           </div>
         </div>
       </div>
+    );
+  }
+
+  if (isRecovering) {
+    return (
+      <Suspense fallback={
+        <div className="flex items-center justify-center min-h-screen bg-[#050505]">
+          <div className="text-zinc-600 font-mono text-[10px] uppercase tracking-[0.3em] animate-pulse">
+            Accediendo a entorno seguro...
+          </div>
+        </div>
+      }>
+        <UpdatePasswordForm />
+      </Suspense>
     );
   }
 
