@@ -1,4 +1,4 @@
-import React, { useEffect, useState, lazy, Suspense } from 'react';
+import React, { useEffect, useState, useMemo, lazy, Suspense } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Button } from '@/components/ui/button';
@@ -61,7 +61,47 @@ export const Dashboard: React.FC = () => {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<any>(null);
 
-  const currentMonthName = format(new Date(), 'MMMM', { locale: es });
+  const [selectedMonthVal, setSelectedMonthVal] = useState(format(new Date(), 'yyyy-MM'));
+
+  const selectedMonthDate = useMemo(() => {
+    return parseISO(selectedMonthVal + '-01');
+  }, [selectedMonthVal]);
+
+  const currentMonthName = useMemo(() => {
+    return format(selectedMonthDate, 'MMMM yyyy', { locale: es });
+  }, [selectedMonthDate]);
+
+  const monthOptions = useMemo(() => {
+    const options = [];
+    const now = new Date();
+    for (let i = 0; i < 24; i++) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const label = format(date, 'MMMM yyyy', { locale: es });
+      options.push({ value: format(date, 'yyyy-MM'), label });
+    }
+    return options;
+  }, []);
+
+  const isCurrentMonth = useMemo(() => {
+    const currentMonthVal = format(new Date(), 'yyyy-MM');
+    return selectedMonthVal >= currentMonthVal;
+  }, [selectedMonthVal]);
+
+  const handlePrevMonth = () => {
+    const prev = new Date(selectedMonthDate);
+    prev.setMonth(prev.getMonth() - 1);
+    setSelectedMonthVal(format(prev, 'yyyy-MM'));
+  };
+
+  const handleNextMonth = () => {
+    const next = new Date(selectedMonthDate);
+    next.setMonth(next.getMonth() + 1);
+    const nextVal = format(next, 'yyyy-MM');
+    const currentMonthVal = format(new Date(), 'yyyy-MM');
+    if (nextVal <= currentMonthVal) {
+      setSelectedMonthVal(nextVal);
+    }
+  };
 
   const fetchData = async () => {
     if (!user) return;
@@ -79,7 +119,11 @@ export const Dashboard: React.FC = () => {
     if (catRes.data) setCategories(catRes.data);
     if (goalRes.data) setMetas(goalRes.data);
 
-    // Fetch Recent Transactions (last 10)
+    const start = format(startOfMonth(selectedMonthDate), 'yyyy-MM-dd');
+    const end = format(endOfMonth(selectedMonthDate), 'yyyy-MM-dd');
+
+    // Fetch Transactions of selected month (no limit to allow full reports export)
+
     const { data: recentData } = await supabase
       .from('transacciones')
       .select(`
@@ -88,15 +132,12 @@ export const Dashboard: React.FC = () => {
         categoria:categorias(nombre, es_fijo)
       `)
       .eq('user_id', user.id)
+      .gte('fecha', start)
+      .lte('fecha', end)
       .order('fecha', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(10);
+      .order('created_at', { ascending: false });
 
-    if (recentData) setRecentTransactions(recentData);
-
-    // Fetch Monthly Stats
-    const start = format(startOfMonth(new Date()), 'yyyy-MM-dd');
-    const end = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+    if (recentData) setRecentTransactions(recentData);    
 
     const { data: transData } = await supabase
       .from('transacciones')
@@ -124,7 +165,7 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, [user]);
+  }, [user, selectedMonthVal]);
 
   const requestDeleteTransaction = (transaction: any) => {
     setTransactionToDelete(transaction);
@@ -174,7 +215,7 @@ export const Dashboard: React.FC = () => {
 
   const handleExport = (type: 'pdf' | 'excel') => {
     if (type === 'pdf') {
-      ExportService.exportToPDF(recentTransactions, stats, profile);
+      ExportService.exportToPDF(recentTransactions, stats, { ...profile, saldo_total: totalBalanceFromAccounts });
     } else {
       ExportService.exportToExcel(recentTransactions);
     }
@@ -352,6 +393,66 @@ export const Dashboard: React.FC = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-10">
+        {/* Filtro de Mes/Periodo */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-lg"
+        >
+          <div className="space-y-1">
+            <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold">Periodo de Análisis</span>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={handlePrevMonth}
+                className="h-8 w-8 bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white"
+                title="Mes Anterior"
+              >
+                <ChevronDown className="w-4 h-4 rotate-90" />
+              </Button>
+              
+              <div className="relative">
+                <select
+                  value={selectedMonthVal}
+                  onChange={(e) => setSelectedMonthVal(e.target.value)}
+                  className="bg-zinc-950 border border-zinc-800 text-zinc-100 text-xs font-semibold rounded-md pl-3 pr-8 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 h-8 appearance-none cursor-pointer"
+                >
+                  {monthOptions.map(opt => (
+                    <option key={opt.value} value={opt.value} className="bg-zinc-900 text-zinc-100">
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-zinc-500">
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </div>
+              </div>
+
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={handleNextMonth}
+                 disabled={isCurrentMonth}
+                className="h-8 w-8 bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white"
+                title="Siguiente Mes"
+              >
+                <ChevronDown className="w-4 h-4 -rotate-90" />
+              </Button>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 self-start sm:self-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedMonthVal(format(new Date(), 'yyyy-MM'))}
+              className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 hover:text-white border-zinc-800 h-8 font-mono bg-zinc-900/50"
+            >
+              Mes Actual
+            </Button>
+          </div>
+        </motion.div>
         {/* Main Balance & Stats */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <motion.div
@@ -367,7 +468,7 @@ export const Dashboard: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-4xl font-bold tracking-tighter text-zinc-100">
-                  {isPrivate ? '••••••••' : `$${(profile?.saldo_total || 0).toLocaleString('de-DE')}`}
+                  {isPrivate ? '••••••••' : `$${totalBalanceFromAccounts.toLocaleString('de-DE')}`}
                 </div>
                 <div className="flex items-center gap-2 mt-4">
                   <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 font-mono text-[10px]">
@@ -699,7 +800,7 @@ export const Dashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
               <Calendar className="w-4 h-4" strokeWidth={1.5} />
-              Últimos Movimientos
+              Movimientos de {currentMonthName}
             </h2>
           </div>
 
@@ -772,7 +873,7 @@ export const Dashboard: React.FC = () => {
                   {recentTransactions.length === 0 && (
                     <tr>
                       <td colSpan={5} className="px-6 py-12 text-center text-zinc-600 font-mono text-xs italic">
-                        No hay movimientos registrados recientemente.
+                        No hay movimientos registrados para este mes.
                       </td>
                     </tr>
                   )}

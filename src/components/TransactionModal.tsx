@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNotify } from '../hooks/useNotify';
+import { Calendar } from 'lucide-react';
 
 interface TransactionModalProps {
   isOpen: boolean;
@@ -385,13 +386,18 @@ const TransactionForm: React.FC<{
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label className="text-zinc-400 text-xs uppercase">Fecha</Label>
-          <Input 
-            type="date"
-            required
-            className="bg-zinc-950 border-zinc-800 w-full"
-            value={formData.fecha}
-            onChange={(e) => setFormData(prev => ({...prev, fecha: e.target.value}))}
-          />
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-100 z-10">
+              <Calendar className="w-4 h-4 text-zinc-300" />
+            </span>
+            <Input 
+              type="date"
+              required
+              className="bg-zinc-950 border-zinc-800 w-full pl-9 text-zinc-100 [color-scheme:dark] focus-visible:ring-1 focus-visible:ring-indigo-500"
+              value={formData.fecha}
+              onChange={(e) => setFormData(prev => ({...prev, fecha: e.target.value}))}
+            />
+          </div>
         </div>
 
       <div className="space-y-2">
