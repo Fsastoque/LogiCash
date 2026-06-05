@@ -382,6 +382,18 @@ const TransactionForm: React.FC<{
       </>
       )}
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="text-zinc-400 text-xs uppercase">Fecha</Label>
+          <Input 
+            type="date"
+            required
+            className="bg-zinc-950 border-zinc-800 w-full"
+            value={formData.fecha}
+            onChange={(e) => setFormData(prev => ({...prev, fecha: e.target.value}))}
+          />
+        </div>
+
       <div className="space-y-2">
         <Label className="text-zinc-400 text-xs uppercase">Descripción</Label>
         <Input 
@@ -391,6 +403,7 @@ const TransactionForm: React.FC<{
           onChange={(e) => setFormData(prev => ({...prev, descripcion: e.target.value}))}
         />
       </div>
+       </div>
 
       <DialogFooter className="pt-4 flex flex-col sm:flex-row gap-2">
         <Button 
